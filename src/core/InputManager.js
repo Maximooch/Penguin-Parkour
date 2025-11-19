@@ -182,8 +182,10 @@ export class InputManager {
    * Update input state (called every frame)
    */
   update() {
-    // Could process buffered inputs here
-    // For now, inputs are processed in real-time via events
+    // Reset mouse delta each frame after it's been read
+    // This prevents camera from continuing to rotate
+    this.mouseDelta.x = 0;
+    this.mouseDelta.y = 0;
   }
 
   /**

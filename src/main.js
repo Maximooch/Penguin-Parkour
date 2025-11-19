@@ -14,10 +14,11 @@ import { InputManager } from './core/InputManager.js';
 import { PhysicsWorld } from './core/PhysicsWorld.js';
 import { PenguinController } from './entities/PenguinController.js';
 import { CameraManager } from './managers/CameraManager.js';
+import { SettingsManager } from './managers/SettingsManager.js';
 import { VoxelBuilder } from './utils/VoxelBuilder.js';
 
 console.log('%c🐧 Voxel Penguin Parkour 🐧', 'font-size: 24px; font-weight: bold; color: #00aaff;');
-console.log('Phase 2: Modular Architecture Active');
+console.log('Phase 2.5: Core Systems + Settings');
 
 // Create game instance
 const game = new Game();
@@ -30,7 +31,8 @@ game.inputManager = inputManager;
 // Create physics world
 const physicsWorld = new PhysicsWorld({
   gravity: 50,
-  friction: 10
+  friction: 10,
+  airFriction: 0.5  // Low air friction preserves jump momentum
 });
 game.physicsWorld = physicsWorld;
 
@@ -41,6 +43,13 @@ game.penguinController = penguinController;
 // Create camera manager
 const cameraManager = new CameraManager(game.camera, penguinController, inputManager);
 game.cameraManager = cameraManager;
+
+// Create settings manager
+const settingsManager = new SettingsManager();
+game.settingsManager = settingsManager;
+
+// Apply settings to game systems
+settingsManager.applyToGame(game);
 
 // --- Temporary Level Building (until we have LevelManager) ---
 const levelGroup = new THREE.Group();
@@ -113,22 +122,114 @@ game.levelManager = {
   getSpawnPosition: () => new THREE.Vector3(0, 2, 0)
 };
 
-// --- UI Setup (simple for now) ---
+// --- UI Setup ---
 const startButton = document.getElementById('start-button');
+const settingsButton = document.getElementById('settings-button');
+const settingsBackButton = document.getElementById('settings-back');
+const settingsResetButton = document.getElementById('settings-reset');
 const overlay = document.getElementById('ui-overlay');
+const menu = document.getElementById('menu');
+const settingsPanel = document.getElementById('settings-panel');
 
+// Settings sliders
+const mouseSensitivitySlider = document.getElementById('mouse-sensitivity');
+const mouseSensitivityValue = document.getElementById('mouse-sensitivity-value');
+const masterVolumeSlider = document.getElementById('master-volume');
+const masterVolumeValue = document.getElementById('master-volume-value');
+const musicVolumeSlider = document.getElementById('music-volume');
+const musicVolumeValue = document.getElementById('music-volume-value');
+const sfxVolumeSlider = document.getElementById('sfx-volume');
+const sfxVolumeValue = document.getElementById('sfx-volume-value');
+
+// Load settings into UI
+function updateUIFromSettings() {
+  if (mouseSensitivitySlider) {
+    mouseSensitivitySlider.value = settingsManager.get('mouseSensitivity');
+    mouseSensitivityValue.textContent = settingsManager.get('mouseSensitivity').toFixed(1);
+  }
+  if (masterVolumeSlider) {
+    masterVolumeSlider.value = settingsManager.get('masterVolume');
+    masterVolumeValue.textContent = Math.round(settingsManager.get('masterVolume') * 100) + '%';
+  }
+  if (musicVolumeSlider) {
+    musicVolumeSlider.value = settingsManager.get('musicVolume');
+    musicVolumeValue.textContent = Math.round(settingsManager.get('musicVolume') * 100) + '%';
+  }
+  if (sfxVolumeSlider) {
+    sfxVolumeSlider.value = settingsManager.get('sfxVolume');
+    sfxVolumeValue.textContent = Math.round(settingsManager.get('sfxVolume') * 100) + '%';
+  }
+}
+
+updateUIFromSettings();
+
+// Start button
 if (startButton && overlay) {
   startButton.addEventListener('click', () => {
-    // Hide overlay
     overlay.classList.add('hidden');
-
-    // Start game
     game.setState(GameState.PLAYING);
-
-    // Request pointer lock
     inputManager.requestPointerLock();
-
     console.log('[Game] Started!');
+  });
+}
+
+// Settings button
+if (settingsButton && menu && settingsPanel) {
+  settingsButton.addEventListener('click', () => {
+    menu.classList.add('hidden');
+    settingsPanel.classList.remove('hidden');
+  });
+}
+
+// Settings back button
+if (settingsBackButton && menu && settingsPanel) {
+  settingsBackButton.addEventListener('click', () => {
+    settingsPanel.classList.add('hidden');
+    menu.classList.remove('hidden');
+  });
+}
+
+// Settings reset button
+if (settingsResetButton) {
+  settingsResetButton.addEventListener('click', () => {
+    settingsManager.reset();
+    updateUIFromSettings();
+    settingsManager.applyToGame(game);
+  });
+}
+
+// Mouse Sensitivity slider
+if (mouseSensitivitySlider) {
+  mouseSensitivitySlider.addEventListener('input', (e) => {
+    const value = parseFloat(e.target.value);
+    mouseSensitivityValue.textContent = value.toFixed(1);
+    settingsManager.set('mouseSensitivity', value);
+    settingsManager.applyToGame(game);
+  });
+}
+
+// Volume sliders
+if (masterVolumeSlider) {
+  masterVolumeSlider.addEventListener('input', (e) => {
+    const value = parseFloat(e.target.value);
+    masterVolumeValue.textContent = Math.round(value * 100) + '%';
+    settingsManager.set('masterVolume', value);
+  });
+}
+
+if (musicVolumeSlider) {
+  musicVolumeSlider.addEventListener('input', (e) => {
+    const value = parseFloat(e.target.value);
+    musicVolumeValue.textContent = Math.round(value * 100) + '%';
+    settingsManager.set('musicVolume', value);
+  });
+}
+
+if (sfxVolumeSlider) {
+  sfxVolumeSlider.addEventListener('input', (e) => {
+    const value = parseFloat(e.target.value);
+    sfxVolumeValue.textContent = Math.round(value * 100) + '%';
+    settingsManager.set('sfxVolume', value);
   });
 }
 

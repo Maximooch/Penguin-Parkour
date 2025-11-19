@@ -19,6 +19,7 @@ export class PhysicsWorld {
     // Physics configuration
     this.gravity = config.gravity || 50;
     this.friction = config.friction || 10;
+    this.airFriction = config.airFriction || 0.5; // Much less friction in air
 
     // Active platforms for collision
     this.platforms = [];
@@ -61,13 +62,16 @@ export class PhysicsWorld {
 
     const position = entity.getPosition();
     const velocity = entity.getVelocity();
+    const wasOnGround = entity.isOnGround();
 
     // Apply gravity
     velocity.y -= this.gravity * deltaTime;
 
     // Apply friction to horizontal movement
-    velocity.x -= velocity.x * this.friction * deltaTime;
-    velocity.z -= velocity.z * this.friction * deltaTime;
+    // Use different friction for air vs ground to preserve jump momentum
+    const activeFriction = wasOnGround ? this.friction : this.airFriction;
+    velocity.x -= velocity.x * activeFriction * deltaTime;
+    velocity.z -= velocity.z * activeFriction * deltaTime;
 
     // Calculate next position
     this.tempPos.copy(position);
