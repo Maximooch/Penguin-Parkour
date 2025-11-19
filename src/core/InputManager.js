@@ -182,10 +182,8 @@ export class InputManager {
    * Update input state (called every frame)
    */
   update() {
-    // Reset mouse delta each frame after it's been read
-    // This prevents camera from continuing to rotate
-    this.mouseDelta.x = 0;
-    this.mouseDelta.y = 0;
+    // Mouse delta is reset in getActions() after it's read
+    // to prevent premature reset
   }
 
   /**
@@ -206,6 +204,13 @@ export class InputManager {
       moveVector.normalize();
     }
 
+    // Capture mouse delta before resetting
+    const currentMouseDelta = { ...this.mouseDelta };
+
+    // Reset mouse delta after reading to prevent auto-rotation
+    this.mouseDelta.x = 0;
+    this.mouseDelta.y = 0;
+
     return {
       // Movement
       moveVector: moveVector,
@@ -217,7 +222,7 @@ export class InputManager {
       interact: false,  // Future: F key
 
       // Mouse look
-      mouseDelta: { ...this.mouseDelta },
+      mouseDelta: currentMouseDelta,
       mouseSensitivity: this.mouseSensitivity
     };
   }
