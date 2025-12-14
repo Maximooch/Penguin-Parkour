@@ -1,165 +1,167 @@
 # Voxel Penguin Parkour - Task Checklist
 
-**Last Updated:** December 7, 2024
-**Status:** In Progress - Phase 1
+**Last Updated:** January 9, 2025
+**Status:** In Progress - Phase 2 Complete, Phase 3 Next
 
 ---
 
-## Phase 1: Foundation Setup
+## Phase 1: Foundation Setup ✅ COMPLETE
 
 **Goal:** Get Vite running with basic project structure
-**Estimated Time:** 30 minutes
+**Completed:** January 2025
 
 - [x] Create context folder
 - [x] Create plan.md (architecture documentation)
 - [x] Create todo.md (this file)
 - [x] Initialize npm project (`npm init -y`)
-- [x] Install Vite (`npm install -D vite`)
-- [x] Install Three.js (`npm install three`)
+- [x] Install Vite (`npm install -D vite`) - v7.2.2
+- [x] Install Three.js (`npm install three`) - v0.181.1
 - [x] Create directory structure:
   - [x] `/src/`
   - [x] `/src/core/`
   - [x] `/src/entities/`
   - [x] `/src/managers/`
   - [x] `/src/utils/`
-  - [ ] `/public/`
-  - [ ] `/public/levels/`
+  - [x] `/public/`
+  - [x] `/public/levels/`
 - [x] Create minimal `index.html` (loads main.js)
 - [x] Create `styles.css` (basic UI styles)
-- [x] Create `vite.config.js` (optional, mostly defaults)
+- [x] Create `vite.config.js`
 - [x] Create `src/main.js` with "Hello Penguin" console log
 - [x] Add npm scripts to `package.json`:
-  - [ ] `"dev": "vite"`
-  - [ ] `"build": "vite build"`
-  - [ ] `"preview": "vite preview"`
-- [ ] Test: Run `npm run dev`
-- [ ] Test: Verify browser shows blank page
-- [ ] Test: Verify console logs "Hello Penguin"
-- [ ] Git commit: `feat: initialize Vite project structure`
+  - [x] `"dev": "vite"`
+  - [x] `"build": "vite build"`
+  - [x] `"preview": "vite preview"`
+- [x] Test: Run `npm run dev` ✓
+- [x] Test: Verify browser loads game ✓
+- [x] Test: Verify console logs "🐧 Voxel Penguin Parkour" ✓
 
-**Success Criteria:** ✅ COMPLETE - Vite dev server running, blank page loads
+**Success Criteria:** ✅ Vite dev server running, game loads and plays
 
 ---
 
-## Phase 2: Core Module Extraction
+## Phase 2: Core Module Extraction ✅ COMPLETE
 
 **Goal:** Working game with modular architecture
-**Estimated Time:** 2-3 hours
+**Completed:** January 2025
 
-### 2.1 - Game.js (The Conductor)
-- [x] Create `src/core/Game.js`
-- [x] Copy Three.js setup from original:
+### 2.1 - Game.js (The Conductor) ✅
+- [x] Create `src/core/Game.js` (321 lines)
+- [x] Three.js setup:
   - [x] Scene creation
-  - [x] Renderer setup
-  - [x] Basic lighting
-- [x] Add game state management:
+  - [x] Renderer setup with shadows
+  - [x] Basic lighting (ambient + directional)
+- [x] Game state management:
   - [x] `LOADING`, `MENU`, `PLAYING`, `PAUSED`, `GAMEOVER`, `VICTORY`
   - [x] `setState(newState)` method
-- [x] Implement game loop:
+- [x] Game loop:
   - [x] `requestAnimationFrame` loop
   - [x] Delta time calculation
   - [x] `update(deltaTime)` method
-- [x] Add window resize handler
-- [x] Test: Verify scene renders
+- [x] Window resize handler
+- [x] Test: Scene renders ✓
 
-### 2.2 - InputManager.js (The Interface)
-- [x] Create `src/core/InputManager.js`
-- [x] Copy keyboard event listeners from original
-- [x] Abstract to actions API:
+### 2.2 - InputManager.js (The Interface) ✅
+- [x] Create `src/core/InputManager.js` (279 lines)
+- [x] Keyboard event listeners (WASD, Space, Shift, Escape)
+- [x] Actions API:
   - [x] `moveVector` (Vector2 from WASD)
   - [x] `jump` (boolean, just pressed)
   - [x] `sprint` (boolean, held)
-- [x] Add mouse/pointer lock:
+- [x] Mouse/pointer lock:
   - [x] `lockPointer()` method
   - [x] `getMouseDelta()` for camera
-- [x] Add `update()` method to process each frame
-- [x] Add `getActions()` to return current state
-- [x] Test: Log actions to console, verify WASD works
+- [x] `update()` method to process each frame
+- [x] `getActions()` to return current state
+- [x] Test: WASD works ✓
 
-### 2.3 - PhysicsWorld.js (The Rules)
-- [x] Create `src/core/PhysicsWorld.js`
-- [x] Copy gravity application from original
-- [x] Copy AABB collision detection
-- [x] Add methods:
+### 2.3 - PhysicsWorld.js (The Rules) ✅
+- [x] Create `src/core/PhysicsWorld.js` (280 lines)
+- [x] Gravity application
+- [x] AABB collision detection
+- [x] Methods:
   - [x] `applyGravity(entity, deltaTime)`
   - [x] `checkCollisions(entity, platforms)`
   - [x] `resolveCollision(entityBox, platformBox)`
   - [x] `isGrounded(entity, platforms)`
-- [x] Test: Verify collision math with dummy objects
+- [x] Test: Collision works ✓
 
-### 2.4 - Entity.js (Base Class) - SKIPPED
-- [x] ~~Create `src/entities/Entity.js`~~ (Not needed - PenguinController is self-contained)
-- [x] ~~Add base properties~~ (Implemented directly in PenguinController)
-- [x] ~~Add base methods~~ (Implemented directly in PenguinController)
+### 2.4 - Entity.js (Base Class) ✅
+- [x] Create `src/entities/Entity.js` (206 lines)
+- [x] Base properties:
+  - [x] `position` (Vector3)
+  - [x] `velocity` (Vector3)
+  - [x] `mesh` (Three.js object)
+  - [x] `collider` (bounding box)
+- [x] Base methods:
+  - [x] `update(deltaTime)`
+  - [x] `getPosition()`
+  - [x] `setPosition(x, y, z)`
 
-### 2.5 - PenguinController.js (The Star)
-- [x] Create `src/entities/PenguinController.js`
-- [x] ~~Extend Entity base class~~ (Self-contained implementation)
-- [x] Copy player mesh creation from original
-- [x] Implement state machine:
+### 2.5 - PenguinController.js (The Star) ✅
+- [x] Create `src/entities/PenguinController.js` (418 lines)
+- [x] Extend Entity base class
+- [x] Player mesh creation via VoxelBuilder
+- [x] State machine:
   - [x] `IDLE` state
   - [x] `WALK` state
   - [x] `RUN` state
   - [x] `JUMP` state
   - [x] `FALL` state
   - [x] `LAND` state (transition helper)
-- [x] Add state transition logic
-- [x] Copy movement code from original:
-  - [x] Walk speed: 10
+- [x] State transition logic
+- [x] Movement code:
+  - [x] Walk speed: 8
   - [x] Sprint speed: 16
-  - [x] Jump power: 14
-- [x] Add waddle animation
-- [x] Add `update(deltaTime, actions)` method
-- [x] Test: Verify penguin moves and jumps
+  - [x] Jump power: 17
+- [x] Waddle animation
+- [x] `update(deltaTime, actions)` method
+- [x] Test: Penguin moves and jumps ✓
 
-### 2.6 - CameraManager.js (The Eye)
-- [x] Create `src/managers/CameraManager.js`
-- [x] Copy camera setup from original
-- [x] Improve lerp following (smooth, no jitter)
-- [x] Add configurable offset
-- [x] Add look-ahead (predict player movement)
-- [x] Add `update(deltaTime, target)` method
-- [x] Add `setMode(mode)` for future camera modes
-- [x] Test: Camera follows penguin smoothly
+### 2.6 - CameraManager.js (The Eye) ✅
+- [x] Create `src/managers/CameraManager.js` (221 lines)
+- [x] Camera setup
+- [x] Smooth lerp following
+- [x] Configurable offset
+- [x] Mouse look (yaw/pitch)
+- [x] FOV effects (sprint = wider FOV)
+- [x] `update(deltaTime, target)` method
+- [x] `setMode(mode)` for future camera modes
+- [x] Test: Camera follows penguin smoothly ✓
 
-### 2.7 - VoxelBuilder.js (The Artist)
-- [x] Create `src/utils/VoxelBuilder.js`
-- [x] Copy block creation from original
-- [x] Add static methods:
-  - [x] `createBlock(position, size, color)`
-  - [x] `createPlatform(position, dimensions, color)`
-  - [x] `createPenguinMesh()` (migrate from PenguinController)
-- [x] Add helper for merged geometry (future optimization)
-- [x] Test: Create test blocks, verify they appear
+### 2.7 - VoxelBuilder.js (The Artist) ✅
+- [x] Create `src/utils/VoxelBuilder.js` (278 lines)
+- [x] Block creation
+- [x] Static methods:
+  - [x] `createVoxel(x, y, z, color, parent, scale)`
+  - [x] `createPlatform(x, y, z, width, depth, color, parent)`
+  - [x] `buildPenguin(parent)` - full penguin mesh
+  - [x] `createWater(scene, yLevel)`
+  - [x] `createGoal(scene, position)` - fish collectible
+  - [x] `createSpeedLines(parent, count)`
+- [x] Material caching for performance
+- [x] Test: Blocks appear correctly ✓
 
-### 2.8 - Wire Everything Together
-- [x] Update `src/main.js`:
+### 2.8 - Wire Everything Together ✅
+- [x] Update `src/main.js` (177 lines):
   - [x] Import all modules
   - [x] Create Game instance
   - [x] Create InputManager
   - [x] Create PhysicsWorld
   - [x] Create PenguinController
   - [x] Create CameraManager
-- [ ] Update `src/main.js`:
-  - [ ] Import all modules
-  - [ ] Create Game instance
-  - [ ] Create InputManager
-  - [ ] Create PhysicsWorld
-  - [ ] Create PenguinController
-  - [ ] Create CameraManager
-  - [ ] Wire update loop
-- [ ] Temporarily hardcode platforms (copy from original)
-- [ ] Add goal object
-- [ ] Add speed lines effect
-- [ ] Test: Full game playable!
-- [ ] Compare to original - should feel identical
-- [ ] Git commit: `feat: extract core systems into modules`
+  - [x] Wire update loop
+- [x] Temporarily hardcode platforms
+- [x] Add goal object (fish)
+- [x] Add speed lines effect
+- [x] Test: Full game playable! ✓
+- [x] Compare to original - feels identical ✓
 
 **Success Criteria:** ✅ Game plays exactly like original monolith
 
 ---
 
-## Phase 3: Level System
+## Phase 3: Level System 🔄 IN PROGRESS
 
 **Goal:** Levels load from JSON files
 **Estimated Time:** 1-2 hours
@@ -211,7 +213,7 @@
 - [ ] Test: Win condition still works
 - [ ] Git commit: `feat: implement JSON level loading system`
 
-**Success Criteria:** ✅ Level loads from external JSON file
+**Success Criteria:** ⏳ Level loads from external JSON file
 
 ---
 
@@ -298,7 +300,7 @@
 - [ ] Update README.md with build instructions
 - [ ] Git commit: `feat: add UI and infrastructure managers`
 
-**Success Criteria:** ✅ Complete game with menus, settings, and proper state management
+**Success Criteria:** ⏳ Complete game with menus, settings, and proper state management
 
 ---
 
@@ -362,18 +364,18 @@
 
 **Run this after each phase:**
 
-- [ ] Player can move (WASD)
-- [ ] Player can jump (Space)
-- [ ] Player can sprint (Shift)
-- [ ] Collision detection works
-- [ ] Camera follows player
-- [ ] Speed lines appear when moving fast
-- [ ] Win condition triggers on goal
-- [ ] Death condition triggers on fall
-- [ ] UI menus work
+- [x] Player can move (WASD) ✓
+- [x] Player can jump (Space) ✓
+- [x] Player can sprint (Shift) ✓
+- [x] Collision detection works ✓
+- [x] Camera follows player ✓
+- [x] Speed lines appear when moving fast ✓
+- [x] Win condition triggers on goal ✓
+- [x] Death condition triggers on fall ✓
+- [ ] UI menus work (basic start button only)
 - [ ] Settings persist
-- [ ] No console errors
-- [ ] 60 FPS on target hardware
+- [x] No console errors ✓
+- [x] 60 FPS on target hardware ✓
 
 ---
 
@@ -381,7 +383,8 @@
 
 _Track issues here as they arise_
 
-- None yet!
+- Levels are hardcoded in main.js (Phase 3 will fix)
+- Start button UI is basic (Phase 4 will improve)
 
 ---
 

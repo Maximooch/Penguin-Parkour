@@ -11,6 +11,7 @@
  */
 
 import * as THREE from 'three';
+import { Entity } from './Entity.js';
 import { VoxelBuilder } from '../utils/VoxelBuilder.js';
 
 // Penguin states
@@ -26,19 +27,29 @@ export const PenguinState = {
 /**
  * PenguinController class
  * Controls the player penguin character
+ * Extends Entity base class
  */
-export class PenguinController {
+export class PenguinController extends Entity {
   constructor(scene) {
+    // Initialize Entity base class
+    const position = new THREE.Vector3(0, 0, 0);
+    const velocity = new THREE.Vector3(0, 0, 0);
+    
+    super({ position, velocity });
+    
     this.scene = scene;
+    this.addToScene(scene);
 
     // Create penguin groups
     this.penguinGroup = new THREE.Group();
     this.penguinBody = new THREE.Group();
     this.penguinGroup.add(this.penguinBody);
+    this.penguinGroup.position.copy(position);
     scene.add(this.penguinGroup);
 
     // Build penguin mesh
     VoxelBuilder.buildPenguin(this.penguinBody);
+    this.mesh = this.penguinGroup; // Set mesh for Entity base class
 
     // Create speed lines
     this.linesGroup = new THREE.Group();
@@ -46,7 +57,6 @@ export class PenguinController {
     this.speedLines = VoxelBuilder.createSpeedLines(this.linesGroup, 10);
 
     // Physics state
-    this.velocity = new THREE.Vector3(0, 0, 0);
     this.onGround = false;
 
     // Movement configuration
@@ -65,6 +75,10 @@ export class PenguinController {
 
     // Camera-related
     this.cameraYaw = Math.PI; // Which way camera is facing
+    
+    // Set entity tags
+    this.addTag('player');
+    this.addTag('penguin');
   }
 
   /**
@@ -74,6 +88,9 @@ export class PenguinController {
    */
   update(deltaTime, actions) {
     if (!actions) return;
+
+    // Call base Entity update
+    super.update(deltaTime);
 
     // Update movement
     this.updateMovement(deltaTime, actions);
@@ -298,17 +315,17 @@ export class PenguinController {
   }
 
   /**
-   * Get position
+   * Get position (override Entity method)
    */
   getPosition() {
-    return this.penguinGroup.position;
+    return super.getPosition();
   }
 
   /**
    * Set position
    */
   setPosition(position) {
-    this.penguinGroup.position.copy(position);
+    super.setPosition(position.x, position.y, position.z);
   }
 
   /**
@@ -359,9 +376,43 @@ export class PenguinController {
   }
 
   /**
-   * Destroy and cleanup
+   * Get entity size (implement Entity method)
+   * @returns {THREE.Vector3} Size vector
+   */
+  getSize() {
+    // Penguin is roughly 1x1x1 units
+    return new THREE.Vector3(1, 1, 1);
+  }
+
+  /**
+   * Check if entity is grounded (implement Entity method)
+   * @returns {boolean} True if entity is grounded
+   */
+  isGrounded() {
+    return this.onGround;
+  }
+
+  /**
+   * Update collider (implement Entity method)
+   */
+  updateCollider() {
+    // Penguin collider is centered at position with 0.5 radius
+    const radius = 0.5;
+    this.collider = {
+      minX: this.position.x - radius,
+      maxX: this.position.x + radius,
+      minY: this.position.y - 1, // Height is 1 unit
+      maxY: this.position.y,
+      minZ: this.position.z - radius,
+      maxZ: this.position.z + radius
+    };
+  }
+
+  /**
+   * Destroy and cleanup (override Entity method)
    */
   destroy() {
+    super.destroy();
     this.scene.remove(this.penguinGroup);
   }
 }
