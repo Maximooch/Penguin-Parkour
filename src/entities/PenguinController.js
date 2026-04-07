@@ -308,7 +308,8 @@ export class PenguinController extends Entity {
    * Reset position
    */
   resetPosition(position) {
-    this.penguinGroup.position.copy(position);
+    // Update Entity base position (used by PhysicsWorld)
+    super.setPosition(position.x, position.y, position.z);
     this.velocity.set(0, 0, 0);
     this.onGround = false;
     this.setState(PenguinState.IDLE);

@@ -65,16 +65,13 @@ export class PhysicsWorld {
     // Apply gravity
     velocity.y -= this.gravity * deltaTime;
 
-    // Apply friction to horizontal movement
-    velocity.x -= velocity.x * this.friction * deltaTime;
-    velocity.z -= velocity.z * this.friction * deltaTime;
+    // Check collisions and determine platform-specific friction
+    let onGround = false;
+    let platformFriction = this.friction; // Default to global friction
 
     // Calculate next position
     this.tempPos.copy(position);
     this.tempPos.addScaledVector(velocity, deltaTime);
-
-    // Check collisions
-    let onGround = false;
 
     for (const platform of this.platforms) {
       // Check if entity is above the platform (in XZ plane)
@@ -90,9 +87,19 @@ export class PhysicsWorld {
           this.tempPos.y = platform.maxY;
           velocity.y = 0;
           onGround = true;
+          
+          // Use platform-specific friction if available
+          if (platform.friction !== undefined) {
+            platformFriction = platform.friction;
+          }
+          break; // Only interact with one platform at a time
         }
       }
     }
+
+    // Apply friction to horizontal movement
+    velocity.x -= velocity.x * platformFriction * deltaTime;
+    velocity.z -= velocity.z * platformFriction * deltaTime;
 
     // Update entity
     entity.setPosition(this.tempPos);

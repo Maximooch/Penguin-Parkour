@@ -9,8 +9,14 @@
 <body>
   <div id="game-container"></div>
 
+  <!-- Loading Screen -->
+  <div id="loading-screen" class="loading-screen">
+    <div class="loading-spinner"></div>
+    <p id="loading-text">Loading...</p>
+  </div>
+
   <!-- UI Overlays (will be managed by UIManager later) -->
-  <div id="ui-overlay">
+  <div id="ui-overlay" class="hidden">
     <div id="menu" class="menu">
       <h1>Voxel Penguin Parkour</h1>
       <button id="start-button" class="menu-button">Start Game</button>
