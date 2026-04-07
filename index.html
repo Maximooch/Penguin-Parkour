@@ -15,11 +15,121 @@
     <p id="loading-text">Loading...</p>
   </div>
 
-  <!-- UI Overlays (will be managed by UIManager later) -->
+  <!-- UI Overlays -->
   <div id="ui-overlay" class="hidden">
-    <div id="menu" class="menu">
-      <h1>Voxel Penguin Parkour</h1>
+
+    <!-- Main Menu -->
+    <div id="menu-main" class="menu">
+      <h1>🐧 Voxel Penguin Parkour</h1>
       <button id="start-button" class="menu-button">Start Game</button>
+    </div>
+
+    <!-- Pause Menu -->
+    <div id="menu-pause" class="menu hidden">
+      <h2>Paused</h2>
+      <div class="menu-buttons">
+        <button id="btn-resume" class="menu-button">Resume</button>
+        <button id="btn-settings" class="menu-button menu-button-secondary">Settings</button>
+        <button id="btn-restart" class="menu-button menu-button-secondary">Restart</button>
+        <button id="btn-quit" class="menu-button menu-button-secondary">Quit to Menu</button>
+      </div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div id="menu-settings" class="menu settings-panel hidden">
+      <h2>Settings</h2>
+      <div class="settings-body">
+        <div class="settings-row">
+          <label for="setting-mouseSensitivity">Mouse Sensitivity</label>
+          <div class="settings-control">
+            <input type="range" id="setting-mouseSensitivity">
+            <span id="setting-mouseSensitivity-value" class="settings-value">1.0</span>
+          </div>
+        </div>
+        <div class="settings-row">
+          <label for="setting-fov">Field of View</label>
+          <div class="settings-control">
+            <input type="range" id="setting-fov">
+            <span id="setting-fov-value" class="settings-value">60°</span>
+          </div>
+        </div>
+        <div class="settings-row">
+          <label for="setting-masterVolume">Master Volume</label>
+          <div class="settings-control">
+            <input type="range" id="setting-masterVolume">
+            <span id="setting-masterVolume-value" class="settings-value">80%</span>
+          </div>
+        </div>
+        <div class="settings-row">
+          <label for="setting-musicVolume">Music Volume</label>
+          <div class="settings-control">
+            <input type="range" id="setting-musicVolume">
+            <span id="setting-musicVolume-value" class="settings-value">60%</span>
+          </div>
+        </div>
+        <div class="settings-row">
+          <label for="setting-sfxVolume">SFX Volume</label>
+          <div class="settings-control">
+            <input type="range" id="setting-sfxVolume">
+            <span id="setting-sfxVolume-value" class="settings-value">100%</span>
+          </div>
+        </div>
+        <div class="settings-row">
+          <label for="setting-shadows">Shadows</label>
+          <div class="settings-control">
+            <input type="checkbox" id="setting-shadows" class="settings-toggle">
+          </div>
+        </div>
+        <div class="settings-row">
+          <label for="setting-particles">Particles</label>
+          <div class="settings-control">
+            <input type="checkbox" id="setting-particles" class="settings-toggle">
+          </div>
+        </div>
+      </div>
+      <div class="settings-footer">
+        <button id="btn-settings-reset" class="menu-button menu-button-small">Reset Defaults</button>
+        <button id="btn-settings-back" class="menu-button">Back</button>
+      </div>
+    </div>
+
+    <!-- Victory Screen -->
+    <div id="menu-victory" class="menu victory-screen hidden">
+      <h2>🎉 Victory! 🐧</h2>
+      <div class="victory-stats">
+        <p>Time: <span id="victory-time">0:00.00</span></p>
+        <p>Fish: <span id="victory-collectibles">0</span></p>
+      </div>
+      <button id="btn-victory-restart" class="menu-button">Play Again</button>
+    </div>
+
+  </div>
+
+  <!-- HUD (always visible during gameplay) -->
+  <div id="hud" class="hud hidden">
+    <div class="hud-left">
+      <span id="hud-level" class="hud-label">Tutorial</span>
+    </div>
+    <div class="hud-center">
+      <span id="hud-timer" class="hud-timer">0:00.00</span>
+    </div>
+    <div class="hud-right">
+      <span id="hud-collectibles" class="hud-label">🐟 0</span>
+    </div>
+  </div>
+
+  <!-- Controls Overlay (first play) -->
+  <div id="controls-overlay" class="controls-overlay hidden">
+    <div class="controls-card">
+      <h3>Controls</h3>
+      <div class="controls-grid">
+        <span class="controls-key">W A S D</span><span>Move</span>
+        <span class="controls-key">Space</span><span>Jump</span>
+        <span class="controls-key">Shift</span><span>Sprint</span>
+        <span class="controls-key">Mouse</span><span>Look Around</span>
+        <span class="controls-key">Esc</span><span>Pause</span>
+      </div>
+      <button id="btn-controls-dismiss" class="menu-button menu-button-small">Got it!</button>
     </div>
   </div>
 

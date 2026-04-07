@@ -36,9 +36,9 @@ export class Game {
     this.penguinController = null;
     this.cameraManager = null;
     this.levelManager = null;
+    this.settingsManager = null;
     this.uiManager = null;
     this.audioManager = null;
-
     // Configuration
     this.config = {
       backgroundColor: 0xAADDFF,

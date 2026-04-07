@@ -17,10 +17,11 @@ import * as THREE from 'three';
  * Handles all camera behavior and positioning
  */
 export class CameraManager {
-  constructor(camera, penguinController, inputManager) {
+  constructor(camera, penguinController, inputManager, settingsManager = null) {
     this.camera = camera;
     this.penguinController = penguinController;
     this.inputManager = inputManager;
+    this.settingsManager = settingsManager;
 
     // Camera state
     this.yaw = Math.PI;   // Horizontal rotation
@@ -29,7 +30,7 @@ export class CameraManager {
 
     // Configuration
     this.config = {
-      baseFov: 60,
+      baseFov: settingsManager ? settingsManager.get('fov') : 60,
       sprintFov: 70,
       mouseSensitivity: 0.002,
       followSpeed: 0.5,     // How fast camera catches up (0-1, higher = faster)
@@ -44,8 +45,20 @@ export class CameraManager {
     // Temp vectors (to avoid GC)
     this.tempTarget = new THREE.Vector3();
     this.tempPosition = new THREE.Vector3();
-  }
 
+    // Listen for settings changes
+    if (settingsManager) {
+      settingsManager.addEventListener('settingChanged', (e) => {
+        const { key, value } = e.detail;
+        if (key === 'fov') {
+          this.config.baseFov = value;
+          this.currentFov = value;
+          this.camera.fov = value;
+          this.camera.updateProjectionMatrix();
+        }
+      });
+    }
+  }
   /**
    * Update camera (called every frame)
    * @param {number} deltaTime
