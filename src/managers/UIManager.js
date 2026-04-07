@@ -1,8 +1,8 @@
 /**
  * UIManager.js - The Interface
  *
- * Manages all HTML UI overlays: pause menu, HUD, victory screen,
- * settings panel, and controls overlay.
+ * Manages HTML overlays: pause menu, settings panel, HUD,
+ * controls overlay, and victory screen.
  */
 
 export class UIManager {
@@ -11,21 +11,14 @@ export class UIManager {
     this.settingsManager = settingsManager;
     this.inputManager = inputManager;
 
-    // UI elements (cached on first access)
     this.elements = {};
+    this.currentMenu = null;
+    this.controlsShown = false;
 
-    // Timer state
     this.timerStart = 0;
     this.timerElapsed = 0;
     this.timerRunning = false;
 
-    // Controls overlay shown flag
-    this.controlsShown = false;
-
-    // Current visible menu
-    this.currentMenu = null;
-
-    // Bind methods
     this.onResume = this.onResume.bind(this);
     this.onSettings = this.onSettings.bind(this);
     this.onRestart = this.onRestart.bind(this);
@@ -35,14 +28,12 @@ export class UIManager {
     this.onVictoryRestart = this.onVictoryRestart.bind(this);
     this.onDismissControls = this.onDismissControls.bind(this);
 
-    // Setup once DOM is ready
     this.setupButtons();
     this.setupSettingsControls();
+    this.syncSettingsControls();
+    this.bindSettingsUpdates();
   }
 
-  /**
-   * Get or query a DOM element (cached)
-   */
   el(id) {
     if (!this.elements[id]) {
       this.elements[id] = document.getElementById(id);
@@ -50,149 +41,138 @@ export class UIManager {
     return this.elements[id];
   }
 
-  /**
-   * Wire up button click handlers
-   */
   setupButtons() {
-    const resumeBtn = this.el('btn-resume');
-    const settingsBtn = this.el('btn-settings');
-    const restartBtn = this.el('btn-restart');
-    const quitBtn = this.el('btn-quit');
-    const settingsBackBtn = this.el('btn-settings-back');
-    const settingsResetBtn = this.el('btn-settings-reset');
-    const victoryRestartBtn = this.el('btn-victory-restart');
-    const controlsDismiss = this.el('btn-controls-dismiss');
+    const bindings = [
+      ['btn-resume', this.onResume],
+      ['btn-settings', this.onSettings],
+      ['btn-restart', this.onRestart],
+      ['btn-quit', this.onQuitToMenu],
+      ['btn-settings-back', this.onSettingsBack],
+      ['btn-settings-reset', this.onSettingsReset],
+      ['btn-victory-restart', this.onVictoryRestart],
+      ['btn-controls-dismiss', this.onDismissControls]
+    ];
 
-    if (resumeBtn) resumeBtn.addEventListener('click', this.onResume);
-    if (settingsBtn) settingsBtn.addEventListener('click', this.onSettings);
-    if (restartBtn) restartBtn.addEventListener('click', this.onRestart);
-    if (quitBtn) quitBtn.addEventListener('click', this.onQuitToMenu);
-    if (settingsBackBtn) settingsBackBtn.addEventListener('click', this.onSettingsBack);
-    if (settingsResetBtn) settingsResetBtn.addEventListener('click', this.onSettingsReset);
-    if (victoryRestartBtn) victoryRestartBtn.addEventListener('click', this.onVictoryRestart);
-    if (controlsDismiss) controlsDismiss.addEventListener('click', this.onDismissControls);
+    bindings.forEach(([id, handler]) => {
+      const element = this.el(id);
+      if (element) {
+        element.addEventListener('click', handler);
+      }
+    });
   }
 
-  /**
-   * Wire up settings sliders/toggles to SettingsManager
-   */
   setupSettingsControls() {
     const schema = this.settingsManager.getSchema();
 
-    for (const [key, config] of Object.entries(schema)) {
-      const slider = this.el(`setting-${key}`);
-      const valueDisplay = this.el(`setting-${key}-value`);
-
-      if (!slider) continue;
-
-      // Set initial value
-      const currentVal = this.settingsManager.get(key);
+    Object.entries(schema).forEach(([key, config]) => {
+      const input = this.el(`setting-${key}`);
+      if (!input) return;
 
       if (typeof config.default === 'boolean') {
-        // Toggle checkbox
-        slider.checked = currentVal;
-        slider.addEventListener('change', () => {
-          this.settingsManager.set(key, slider.checked);
+        input.addEventListener('change', () => {
+          this.settingsManager.set(key, input.checked);
         });
-      } else {
-        // Range slider
-        slider.min = config.min;
-        slider.max = config.max;
-        slider.step = config.step;
-        slider.value = currentVal;
-
-        if (valueDisplay) {
-          valueDisplay.textContent = this.formatValue(key, currentVal);
-        }
-
-        slider.addEventListener('input', () => {
-          const val = parseFloat(slider.value);
-          this.settingsManager.set(key, val);
-          if (valueDisplay) {
-            valueDisplay.textContent = this.formatValue(key, val);
-          }
-        });
+        return;
       }
-    }
 
-    // Listen for external settings changes (e.g., debug.settings.set)
-    this.settingsManager.addEventListener('settingChanged', (e) => {
-      const { key, value } = e.detail;
-      const slider = this.el(`setting-${key}`);
-      const valueDisplay = this.el(`setting-${key}-value`);
+      input.min = config.min;
+      input.max = config.max;
+      input.step = config.step;
+      input.addEventListener('input', () => {
+        const value = parseFloat(input.value);
+        this.settingsManager.set(key, value);
+      });
+    });
+  }
 
-      if (slider) {
-        if (typeof value === 'boolean') {
-          slider.checked = value;
-        } else {
-          slider.value = value;
-          if (valueDisplay) {
-            valueDisplay.textContent = this.formatValue(key, value);
-          }
+  bindSettingsUpdates() {
+    this.settingsManager.addEventListener('settingChanged', () => {
+      this.syncSettingsControls();
+    });
+  }
+
+  syncSettingsControls() {
+    const schema = this.settingsManager.getSchema();
+
+    Object.keys(schema).forEach((key) => {
+      const input = this.el(`setting-${key}`);
+      const valueEl = this.el(`setting-${key}-value`);
+      const value = this.settingsManager.get(key);
+
+      if (!input) return;
+
+      if (typeof value === 'boolean') {
+        input.checked = value;
+      } else {
+        input.value = value;
+        if (valueEl) {
+          valueEl.textContent = this.formatValue(key, value);
         }
       }
     });
   }
 
-  /**
-   * Format a setting value for display
-   */
   formatValue(key, value) {
     if (key === 'fov') return `${Math.round(value)}°`;
     if (key === 'mouseSensitivity') return value.toFixed(1);
     if (typeof value === 'number' && value <= 1) return `${Math.round(value * 100)}%`;
-    return value;
+    return String(value);
   }
 
-  // --- Menu Show/Hide ---
+  hideAllMenus() {
+    ['main', 'pause', 'settings', 'victory'].forEach((name) => {
+      const element = this.el(`menu-${name}`);
+      if (element) {
+        element.classList.add('hidden');
+      }
+    });
+    this.currentMenu = null;
+  }
 
-  /**
-   * Show a menu by name
-   */
+  showOverlay() {
+    const overlay = this.el('ui-overlay');
+    if (overlay) {
+      overlay.classList.remove('hidden');
+    }
+  }
+
+  hideOverlay() {
+    const overlay = this.el('ui-overlay');
+    if (overlay) {
+      overlay.classList.add('hidden');
+    }
+  }
+
   showMenu(name) {
-    this.hideMenu(); // Close any open menu first
+    this.hideAllMenus();
+    this.showOverlay();
 
-    const menuEl = this.el(`menu-${name}`);
-    if (menuEl) {
-      menuEl.classList.remove('hidden');
+    const menu = this.el(`menu-${name}`);
+    if (menu) {
+      menu.classList.remove('hidden');
       this.currentMenu = name;
     }
-
-    // Show the overlay container if not visible
-    const overlay = this.el('ui-overlay');
-    if (overlay) overlay.classList.remove('hidden');
   }
 
-  /**
-   * Hide current menu
-   */
   hideMenu() {
-    if (this.currentMenu) {
-      const menuEl = this.el(`menu-${this.currentMenu}`);
-      if (menuEl) menuEl.classList.add('hidden');
-      this.currentMenu = null;
+    this.hideAllMenus();
+    this.hideOverlay();
+  }
+
+  showHUD() {
+    const hud = this.el('hud');
+    if (hud) {
+      hud.classList.remove('hidden');
     }
   }
 
-  /**
-   * Show the HUD
-   */
-  showHUD() {
-    const hud = this.el('hud');
-    if (hud) hud.classList.remove('hidden');
-  }
-
-  /**
-   * Hide the HUD
-   */
   hideHUD() {
     const hud = this.el('hud');
-    if (hud) hud.classList.add('hidden');
+    if (hud) {
+      hud.classList.add('hidden');
+    }
   }
 
-  /**
-   * Show controls overlay (first play only)
-   */
   showControls() {
     if (this.controlsShown) return;
     const controls = this.el('controls-overlay');
@@ -201,26 +181,27 @@ export class UIManager {
     }
   }
 
-  /**
-   * Show victory screen
-   */
-  showVictoryScreen(stats = {}) {
-    this.stopTimer();
+  hideControls() {
+    const controls = this.el('controls-overlay');
+    if (controls) {
+      controls.classList.add('hidden');
+    }
+  }
 
+  showVictoryScreen(stats = {}) {
     const timeEl = this.el('victory-time');
+    const collectiblesEl = this.el('victory-collectibles');
+
     if (timeEl && stats.time !== undefined) {
       timeEl.textContent = this.formatTime(stats.time);
     }
 
-    const collectEl = this.el('victory-collectibles');
-    if (collectEl && stats.collectibles !== undefined) {
-      collectEl.textContent = stats.collectibles;
+    if (collectiblesEl && stats.collectibles !== undefined) {
+      collectiblesEl.textContent = stats.collectibles;
     }
 
     this.showMenu('victory');
   }
-
-  // --- Timer ---
 
   startTimer() {
     this.timerStart = performance.now();
@@ -250,9 +231,6 @@ export class UIManager {
     return `${minutes}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
   }
 
-  /**
-   * Update HUD (called every frame)
-   */
   updateHUD() {
     const timerEl = this.el('hud-timer');
     if (timerEl && this.timerRunning) {
@@ -260,62 +238,66 @@ export class UIManager {
     }
   }
 
-  // --- Button Handlers ---
-
   onResume() {
     this.hideMenu();
     this.game.setState('playing');
-    this.inputManager.requestPointerLock();
+
+    if (this.controlsShown && this.inputManager) {
+      this.inputManager.requestPointerLock();
+    }
   }
 
   onSettings() {
-    this.hideMenu();
     this.showMenu('settings');
   }
 
   onSettingsBack() {
-    this.hideMenu();
     this.showMenu('pause');
   }
 
   onSettingsReset() {
     this.settingsManager.reset();
-    // Re-initialize slider values
-    this.setupSettingsControls();
+    this.syncSettingsControls();
   }
 
   onRestart() {
     this.hideMenu();
+    this.hideControls();
     this.game.setState('playing');
-    this.inputManager.requestPointerLock();
 
-    // Trigger level reload
     if (this.game.levelManager) {
       this.game.levelManager.clearLevel();
-      this.game.levelManager.loadLevel(1).then(data => {
+      this.game.levelManager.loadLevel(1).then((data) => {
         this.game.levelManager.buildLevel(data);
+
         if (this.game.penguinController) {
           this.game.penguinController.resetPosition(this.game.levelManager.getSpawnPosition());
         }
+
         if (this.game.cameraManager) {
           this.game.cameraManager.reset();
         }
+
         this.startTimer();
+
+        if (this.controlsShown && this.inputManager) {
+          this.inputManager.requestPointerLock();
+        }
       });
     }
   }
 
   onQuitToMenu() {
-    this.hideMenu();
+    this.hideControls();
     this.hideHUD();
     this.stopTimer();
-    this.game.setState('menu');
 
-    // Show main menu
-    const overlay = this.el('ui-overlay');
-    if (overlay) overlay.classList.remove('hidden');
-    const mainMenu = this.el('menu-main');
-    if (mainMenu) mainMenu.classList.remove('hidden');
+    if (this.inputManager) {
+      this.inputManager.exitPointerLock();
+    }
+
+    this.game.setState('menu');
+    this.showMenu('main');
   }
 
   onVictoryRestart() {
@@ -324,37 +306,66 @@ export class UIManager {
   }
 
   onDismissControls() {
-    const controls = this.el('controls-overlay');
-    if (controls) controls.classList.add('hidden');
+    this.hideControls();
     this.controlsShown = true;
+
+    if (this.game.isPlaying() && this.inputManager) {
+      this.inputManager.requestPointerLock();
+    }
   }
 
-  // --- Game State Integration ---
-
-  /**
-   * Called when game state changes
-   */
   onGameStateChanged(newState) {
     switch (newState) {
       case 'playing':
         this.showHUD();
-        if (!this.timerRunning) this.startTimer();
-        // Show controls on first play
-        if (!this.controlsShown) this.showControls();
+
+        if (!this.timerRunning) {
+          this.startTimer();
+        }
+
+        if (!this.controlsShown) {
+          this.showControls();
+        }
         break;
+
       case 'paused':
         this.stopTimer();
+        this.hideControls();
+
+        if (this.inputManager) {
+          this.inputManager.exitPointerLock();
+        }
+
         this.showMenu('pause');
         break;
+
       case 'victory':
         this.stopTimer();
+        this.hideControls();
+
+        if (this.inputManager) {
+          this.inputManager.exitPointerLock();
+        }
+
         this.showVictoryScreen({
-          time: this.timerElapsed
+          time: this.timerElapsed,
+          collectibles: 0
         });
         break;
+
       case 'menu':
         this.hideHUD();
+        this.hideControls();
         this.stopTimer();
+
+        if (this.inputManager) {
+          this.inputManager.exitPointerLock();
+        }
+
+        this.showMenu('main');
+        break;
+
+      default:
         break;
     }
   }

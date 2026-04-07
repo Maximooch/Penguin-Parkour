@@ -113,8 +113,9 @@ if (startButton && overlay) {
     const mainMenu = document.getElementById('menu-main');
     if (mainMenu) mainMenu.classList.add('hidden');
 
+    // Do NOT request pointer lock yet.
+    // UIManager will show the controls overlay first, then lock after dismissal.
     game.setState(GameState.PLAYING);
-    inputManager.requestPointerLock();
     console.log('[Game] Started!');
   });
 }
