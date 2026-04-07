@@ -1,27 +1,39 @@
 /**
  * Voxel Penguin Parkour - Main Entry Point
  *
- * This file wires together all the modular systems and starts the game.
- *
- * Phase 2: Core Systems with Hardcoded Level
- * Phase 3: Level System with JSON loading
- * Phase 4: Will add UI and Audio managers
+ * Wires together all modular systems and starts the game.
  */
 
 import * as THREE from 'three';
 import { Game, GameState } from './core/Game.js';
 import { InputManager } from './core/InputManager.js';
 import { PhysicsWorld } from './core/PhysicsWorld.js';
+import { SettingsManager } from './core/SettingsManager.js';
 import { PenguinController } from './entities/PenguinController.js';
 import { CameraManager } from './managers/CameraManager.js';
 import { LevelManager } from './managers/LevelManager.js';
+import { UIManager } from './managers/UIManager.js';
 
 console.log('%c🐧 Voxel Penguin Parkour 🐧', 'font-size: 24px; font-weight: bold; color: #00aaff;');
-console.log('Phase 3: Level System with JSON loading');
 
 // Create game instance
 const game = new Game();
 game.init();
+
+// Create settings manager (before other managers that depend on it)
+const settingsManager = new SettingsManager();
+game.settingsManager = settingsManager;
+
+// Apply shadow setting from saved preferences
+if (!settingsManager.get('shadows')) {
+  game.renderer.shadowMap.enabled = false;
+}
+settingsManager.addEventListener('settingChanged', (e) => {
+  if (e.detail.key === 'shadows') {
+    game.renderer.shadowMap.enabled = e.detail.value;
+    game.renderer.shadowMap.needsUpdate = true;
+  }
+});
 
 // Create input manager
 const inputManager = new InputManager(game);
@@ -39,83 +51,70 @@ const penguinController = new PenguinController(game.scene);
 game.penguinController = penguinController;
 
 // Create camera manager
-const cameraManager = new CameraManager(game.camera, penguinController, inputManager);
+const cameraManager = new CameraManager(game.camera, penguinController, inputManager, settingsManager);
 game.cameraManager = cameraManager;
 
 // Create level manager
 const levelManager = new LevelManager(game);
 game.levelManager = levelManager;
 
+// Create UI manager
+const uiManager = new UIManager(game, settingsManager, inputManager);
+game.uiManager = uiManager;
+
 // --- Loading Screen Management ---
 const loadingScreen = document.getElementById('loading-screen');
 const loadingText = document.getElementById('loading-text');
 
-/**
- * Show loading screen
- */
 function showLoading(message = 'Loading...') {
   if (loadingText) loadingText.textContent = message;
   if (loadingScreen) loadingScreen.classList.remove('hidden');
 }
 
-/**
- * Hide loading screen
- */
 function hideLoading() {
   if (loadingScreen) loadingScreen.classList.add('hidden');
 }
 
-/**
- * Initialize and load the first level
- */
+// --- Initialize Game ---
 async function initGame() {
   try {
     showLoading('Loading level...');
 
-    // Load level 1
     const levelData = await levelManager.loadLevel(1);
-
-    // Build the level
     levelManager.buildLevel(levelData);
 
-    // Reset penguin to spawn position
-    const spawnPos = levelManager.getSpawnPosition();
-    penguinController.resetPosition(spawnPos);
-
-    // Reset camera
+    penguinController.resetPosition(levelManager.getSpawnPosition());
     cameraManager.reset();
 
-    // Show menu
+    // Show main menu
     const uiOverlay = document.getElementById('ui-overlay');
     if (uiOverlay) uiOverlay.classList.remove('hidden');
 
-    // Hide loading screen
-    hideLoading();
+    // Set HUD level name
+    const hudLevel = document.getElementById('hud-level');
+    if (hudLevel) hudLevel.textContent = levelData.name || 'Tutorial';
 
-    console.log('[Main] Game initialized successfully!');
-    console.log(`[Main] Loaded level: ${levelData.name}`);
-    console.log('Press START to begin playing');
+    hideLoading();
+    console.log('[Main] Game initialized — loaded level:', levelData.name);
   } catch (error) {
     console.error('[Main] Failed to initialize game:', error);
     showLoading('Error loading level!');
   }
 }
 
-// --- UI Setup ---
+// --- Start Button ---
 const startButton = document.getElementById('start-button');
 const overlay = document.getElementById('ui-overlay');
 
 if (startButton && overlay) {
   startButton.addEventListener('click', () => {
-    // Hide overlay
+    // Hide overlay and main menu
     overlay.classList.add('hidden');
+    const mainMenu = document.getElementById('menu-main');
+    if (mainMenu) mainMenu.classList.add('hidden');
 
-    // Start game
     game.setState(GameState.PLAYING);
-
-    // Request pointer lock
     inputManager.requestPointerLock();
-
     console.log('[Game] Started!');
   });
 }
@@ -126,8 +125,7 @@ function animateGoal() {
   if (goalPos && game.isPlaying()) {
     const time = Date.now() * 0.001;
     goalPos.y = 12.5 + Math.sin(time * 5) * 0.5;
-    
-    // Rotate goal if it exists
+
     if (levelManager.goalObject) {
       levelManager.goalObject.rotation.y = time * 2;
       levelManager.goalObject.position.y = goalPos.y;
@@ -140,26 +138,40 @@ const originalUpdate = game.update.bind(game);
 game.update = function(deltaTime) {
   originalUpdate(deltaTime);
   animateGoal();
+  if (uiManager) uiManager.updateHUD();
 };
 
-// --- Start the game ---
+// --- Wire game state changes to UI ---
+const originalSetState = game.setState.bind(game);
+game.setState = function(newState) {
+  originalSetState(newState);
+  if (uiManager) uiManager.onGameStateChanged(newState);
+};
+
+// --- Start ---
 initGame().then(() => {
-  // Start the game loop after level is loaded
   game.start();
 });
 
-// Make game available globally for debugging
+// --- Debug ---
 window.game = game;
 window.penguin = penguinController;
 window.physics = physicsWorld;
 window.levelManager = levelManager;
+window.settingsManager = settingsManager;
+window.uiManager = uiManager;
 
-// Debug helpers
 window.debug = {
   showCollision: () => physicsWorld.debugVisualize(game.scene),
   teleport: (x, y, z) => penguinController.resetPosition(new THREE.Vector3(x, y, z)),
   setState: (state) => game.setState(state),
   win: () => game.winGame(),
+  settings: {
+    get: (key) => settingsManager.get(key),
+    set: (key, val) => settingsManager.set(key, val),
+    reset: () => settingsManager.reset(),
+    all: () => settingsManager.getAll()
+  },
   reloadLevel: () => {
     showLoading('Reloading level...');
     levelManager.clearLevel();
@@ -176,4 +188,8 @@ console.log('  debug.showCollision() - Visualize collision boxes');
 console.log('  debug.teleport(x, y, z) - Teleport penguin');
 console.log('  debug.setState(state) - Change game state');
 console.log('  debug.win() - Trigger victory');
+console.log('  debug.settings.get(key) - Get setting value');
+console.log('  debug.settings.set(key, val) - Set setting value');
+console.log('  debug.settings.reset() - Reset all settings');
+console.log('  debug.settings.all() - Show all settings');
 console.log('  debug.reloadLevel() - Reload current level');

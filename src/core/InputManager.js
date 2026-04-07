@@ -30,7 +30,7 @@ export class InputManager {
     };
 
     // Mouse state
-    this.mouseSensitivity = 0.002;
+    this.mouseSensitivity = 0.002; // Base value, multiplied by settings multiplier
     this.mouseDelta = { x: 0, y: 0 };
     this.isDragging = false; // Fallback when pointer lock fails
 
@@ -47,6 +47,22 @@ export class InputManager {
 
     // Setup event listeners
     this.setupListeners();
+
+    // Apply settings if available
+    if (this.game.settingsManager) {
+      this.applySensitivity(this.game.settingsManager.get('mouseSensitivity'));
+      this.game.settingsManager.addEventListener('settingChanged', (e) => {
+        if (e.detail.key === 'mouseSensitivity') this.applySensitivity(e.detail.value);
+      });
+    }
+  }
+
+  /**
+   * Apply mouse sensitivity setting to internal value
+   * @param {number} multiplier - Settings multiplier (0.1–5.0)
+   */
+  applySensitivity(multiplier) {
+    this.mouseSensitivity = 0.002 * multiplier;
   }
 
   /**

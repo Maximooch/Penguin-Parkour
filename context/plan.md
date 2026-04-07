@@ -1,11 +1,10 @@
-# Voxel Penguin Parkour - Modular Architecture Plan
+# Voxel Penguin Parkour - Architecture Plan (Historical)
+
+**Superseded by:** `context/IMPLEMENTATION_PLAN.md` — active roadmap lives there now.
 
 **Project Start:** November 18, 2025
-**Status:** Phase 1 - Foundation Setup
-**Goal:** Transform monolithic prototype into scalable modular architecture
-
----
-
+**Status:** Phases 1-3 COMPLETE ✅
+**Goal:** ~~Transform monolith~~ → Now building features on modular base
 ## Project Vision
 
 A voxel-based 3D parkour game featuring a penguin character with advanced movement mechanics (wall-jump, slide, dash). The architecture must support:
