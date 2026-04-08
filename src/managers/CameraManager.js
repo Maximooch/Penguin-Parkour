@@ -24,9 +24,11 @@ export class CameraManager {
     this.settingsManager = settingsManager;
 
     // Camera state
-    this.yaw = Math.PI;   // Horizontal rotation
-    this.pitch = 0.3;     // Vertical rotation
-    this.distance = 10;   // Distance from target
+    // Default yaw 0 positions the camera behind the penguin for Level 1,
+    // which starts by moving toward negative Z.
+    this.yaw = 0;
+    this.pitch = 0.3;
+    this.distance = 10;
 
     // Configuration
     this.config = {
@@ -184,7 +186,7 @@ export class CameraManager {
    * Reset camera to default position/rotation
    */
   reset() {
-    this.yaw = Math.PI;
+    this.yaw = 0;
     this.pitch = 0.3;
     this.currentFov = this.config.baseFov;
     this.camera.fov = this.currentFov;
