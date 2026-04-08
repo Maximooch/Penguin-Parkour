@@ -74,7 +74,7 @@ export class PenguinController extends Entity {
     this.landingTimer = 0;
 
     // Camera-related
-    this.cameraYaw = Math.PI; // Which way camera is facing
+    this.cameraYaw = 0; // Must match CameraManager default yaw
     
     // Set entity tags
     this.addTag('player');
