@@ -289,6 +289,8 @@ export class Game {
       cancelAnimationFrame(this.animationId);
     }
 
+    this.audioManager?.destroy();
+
     // Remove event listeners
     window.removeEventListener('resize', this.onResize);
 

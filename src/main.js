@@ -11,6 +11,7 @@ import { PhysicsWorld } from './core/PhysicsWorld.js';
 import { SettingsManager } from './core/SettingsManager.js';
 import { PenguinController } from './entities/PenguinController.js';
 import { CameraManager } from './managers/CameraManager.js';
+import { AudioManager } from './managers/AudioManager.js';
 import { LevelManager } from './managers/LevelManager.js';
 import { UIManager } from './managers/UIManager.js';
 
@@ -35,6 +36,11 @@ settingsManager.addEventListener('settingChanged', (e) => {
   }
 });
 
+// No audio assets are registered yet, so the manager remains a safe silent
+// stub until assets are added without changing gameplay call sites.
+const audioManager = new AudioManager(settingsManager);
+game.audioManager = audioManager;
+
 // Create input manager
 const inputManager = new InputManager(game);
 game.inputManager = inputManager;
@@ -47,7 +53,7 @@ const physicsWorld = new PhysicsWorld({
 game.physicsWorld = physicsWorld;
 
 // Create penguin controller
-const penguinController = new PenguinController(game.scene);
+const penguinController = new PenguinController(game.scene, audioManager);
 game.penguinController = penguinController;
 
 // Create camera manager
@@ -161,6 +167,7 @@ window.physics = physicsWorld;
 window.levelManager = levelManager;
 window.settingsManager = settingsManager;
 window.uiManager = uiManager;
+window.audioManager = audioManager;
 
 window.debug = {
   showCollision: () => physicsWorld.debugVisualize(game.scene),
