@@ -1,3 +1,5 @@
+import { INPUT_ACTIONS, INPUT_ACTION_LABELS } from '../core/InputManager.js';
+
 /**
  * UIManager.js - The Interface
  *
@@ -27,10 +29,14 @@ export class UIManager {
     this.onSettingsReset = this.onSettingsReset.bind(this);
     this.onVictoryRestart = this.onVictoryRestart.bind(this);
     this.onDismissControls = this.onDismissControls.bind(this);
+    this.onBindingCapture = this.onBindingCapture.bind(this);
+    this.bindingCapture = null;
 
     this.setupButtons();
     this.setupSettingsControls();
+    this.renderKeyBindings();
     this.syncSettingsControls();
+    this.syncControlsOverlay();
     this.bindSettingsUpdates();
   }
 
@@ -88,6 +94,132 @@ export class UIManager {
   bindSettingsUpdates() {
     this.settingsManager.addEventListener('settingChanged', () => {
       this.syncSettingsControls();
+      this.renderKeyBindings();
+      this.syncControlsOverlay();
+    });
+  }
+
+  renderKeyBindings() {
+    const container = this.el('key-bindings');
+    if (!container || !this.inputManager) return;
+
+    container.replaceChildren();
+    Object.values(INPUT_ACTIONS).forEach((action) => {
+      const row = document.createElement('div');
+      row.className = 'key-binding-row';
+
+      const label = document.createElement('span');
+      label.className = 'key-binding-label';
+      label.textContent = INPUT_ACTION_LABELS[action];
+      row.appendChild(label);
+
+      const controls = document.createElement('div');
+      controls.className = 'key-binding-controls';
+      this.inputManager.getBindings(action).forEach((code, slot) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'key-binding-button';
+        button.dataset.action = action;
+        button.dataset.slot = String(slot);
+        button.textContent = code ? this.formatKeyCode(code) : 'Unbound';
+        button.setAttribute('aria-label', `${INPUT_ACTION_LABELS[action]} ${slot === 0 ? 'primary' : 'alternate'} binding`);
+        button.addEventListener('click', () => this.beginBindingCapture(action, slot, button));
+        controls.appendChild(button);
+      });
+      row.appendChild(controls);
+      container.appendChild(row);
+    });
+  }
+
+  beginBindingCapture(action, slot, button) {
+    this.cancelBindingCapture();
+    this.bindingCapture = { action, slot, button };
+    button.classList.add('is-capturing');
+    button.textContent = 'Press a key…';
+    this.setBindingStatus('Press a key. Escape cancels.');
+    this.inputManager?.setRebindingActive(true);
+    window.addEventListener('keydown', this.onBindingCapture, true);
+  }
+
+  onBindingCapture(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (event.code === 'Escape') {
+      this.cancelBindingCapture();
+      this.setBindingStatus('Binding unchanged.');
+      return;
+    }
+
+    const target = this.bindingCapture;
+    if (!target) return;
+    const conflicts = this.inputManager.findBindingConflicts(event.code, target);
+    this.inputManager.setBinding(target.action, target.slot, event.code);
+    this.cancelBindingCapture();
+
+    if (conflicts.length) {
+      const names = [...new Set(conflicts.map(({ action }) => INPUT_ACTION_LABELS[action]))].join(', ');
+      this.setBindingStatus(`${this.formatKeyCode(event.code)} also controls ${names}.`, true);
+    } else {
+      this.setBindingStatus(`${INPUT_ACTION_LABELS[target.action]} set to ${this.formatKeyCode(event.code)}.`);
+    }
+  }
+
+  cancelBindingCapture() {
+    if (!this.bindingCapture) return;
+    this.bindingCapture.button.classList.remove('is-capturing');
+    this.bindingCapture = null;
+    this.inputManager?.setRebindingActive(false);
+    window.removeEventListener('keydown', this.onBindingCapture, true);
+    this.renderKeyBindings();
+  }
+
+  setBindingStatus(message = '', isWarning = false) {
+    const status = this.el('binding-status');
+    if (!status) return;
+    status.textContent = message;
+    status.classList.toggle('is-warning', isWarning);
+  }
+
+  formatKeyCode(code) {
+    if (!code) return 'Unbound';
+    const names = {
+      Space: 'Space',
+      Escape: 'Esc',
+      ShiftLeft: 'Left Shift',
+      ShiftRight: 'Right Shift',
+      ControlLeft: 'Left Ctrl',
+      ControlRight: 'Right Ctrl',
+      AltLeft: 'Left Alt',
+      AltRight: 'Right Alt'
+    };
+    if (names[code]) return names[code];
+    if (code.startsWith('Key')) return code.slice(3);
+    if (code.startsWith('Digit')) return code.slice(5);
+    return code;
+  }
+
+  syncControlsOverlay() {
+    const bindings = this.inputManager;
+    if (!bindings) return;
+
+    const movement = [
+      bindings.getBindings(INPUT_ACTIONS.moveForward)[0],
+      bindings.getBindings(INPUT_ACTIONS.moveLeft)[0],
+      bindings.getBindings(INPUT_ACTIONS.moveBackward)[0],
+      bindings.getBindings(INPUT_ACTIONS.moveRight)[0]
+    ].map((code) => this.formatKeyCode(code)).join(' ');
+
+    const labels = {
+      movement,
+      jump: this.formatKeyCode(bindings.getBindings(INPUT_ACTIONS.jump)[0]),
+      sprint: this.formatKeyCode(bindings.getBindings(INPUT_ACTIONS.sprint)[0]),
+      pause: this.formatKeyCode(bindings.getBindings(INPUT_ACTIONS.pause)[0])
+    };
+
+    Object.entries(labels).forEach(([action, label]) => {
+      const element = document.querySelector(`[data-control-action="${action}"]`);
+      if (element) element.textContent = label;
     });
   }
 
@@ -252,10 +384,12 @@ export class UIManager {
   }
 
   onSettingsBack() {
+    this.cancelBindingCapture();
     this.showMenu('pause');
   }
 
   onSettingsReset() {
+    this.cancelBindingCapture();
     this.settingsManager.reset();
     this.syncSettingsControls();
   }
@@ -329,6 +463,7 @@ export class UIManager {
         break;
 
       case 'paused':
+        this.cancelBindingCapture();
         this.stopTimer();
         this.hideControls();
 
@@ -354,6 +489,7 @@ export class UIManager {
         break;
 
       case 'menu':
+        this.cancelBindingCapture();
         this.hideHUD();
         this.hideControls();
         this.stopTimer();
