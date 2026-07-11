@@ -62,39 +62,43 @@ export class PhysicsWorld {
     const position = entity.getPosition();
     const velocity = entity.getVelocity();
 
+    // Keep the entity collider in sync before using its extents to resolve
+    // movement. Player positions represent their feet, not their center.
+    entity.updateCollider();
+    const collider = entity.collider;
+    const offsets = {
+      minX: collider.minX - position.x,
+      maxX: collider.maxX - position.x,
+      minY: collider.minY - position.y,
+      maxY: collider.maxY - position.y,
+      minZ: collider.minZ - position.z,
+      maxZ: collider.maxZ - position.z
+    };
+
     // Apply gravity
     velocity.y -= this.gravity * deltaTime;
 
-    // Check collisions and determine platform-specific friction
+    // Resolve each axis separately. This prevents the player from entering
+    // platform sides while retaining the existing top-surface landing behavior.
     let onGround = false;
     let platformFriction = this.friction; // Default to global friction
 
-    // Calculate next position
     this.tempPos.copy(position);
-    this.tempPos.addScaledVector(velocity, deltaTime);
 
-    for (const platform of this.platforms) {
-      // Check if entity is above the platform (in XZ plane)
-      if (
-        this.tempPos.x > platform.minX &&
-        this.tempPos.x < platform.maxX &&
-        this.tempPos.z > platform.minZ &&
-        this.tempPos.z < platform.maxZ
-      ) {
-        // Check if entity is falling onto the platform
-        if (position.y >= platform.maxY && this.tempPos.y <= platform.maxY) {
-          // Land on platform
-          this.tempPos.y = platform.maxY;
-          velocity.y = 0;
-          onGround = true;
-          
-          // Use platform-specific friction if available
-          if (platform.friction !== undefined) {
-            platformFriction = platform.friction;
-          }
-          break; // Only interact with one platform at a time
-        }
-      }
+    this.resolveHorizontalAxis('x', position, velocity, deltaTime, offsets);
+    this.resolveHorizontalAxis('z', position, velocity, deltaTime, offsets);
+
+    const verticalCollision = this.resolveVerticalAxis(
+      position,
+      velocity,
+      deltaTime,
+      offsets
+    );
+
+    this.tempPos.y = verticalCollision.position;
+    onGround = verticalCollision.onGround;
+    if (verticalCollision.platform?.friction !== undefined) {
+      platformFriction = verticalCollision.platform.friction;
     }
 
     // Apply friction to horizontal movement
@@ -104,6 +108,124 @@ export class PhysicsWorld {
     // Update entity
     entity.setPosition(this.tempPos);
     entity.setOnGround(onGround);
+  }
+
+  /**
+   * Resolve movement against platform faces on one horizontal axis.
+   * @param {'x'|'z'} axis
+   * @param {THREE.Vector3} startPosition
+   * @param {THREE.Vector3} velocity
+   * @param {number} deltaTime
+   * @param {Object} offsets - Collider extents relative to entity position
+   */
+  resolveHorizontalAxis(axis, startPosition, velocity, deltaTime, offsets) {
+    const isX = axis === 'x';
+    const minKey = isX ? 'minX' : 'minZ';
+    const maxKey = isX ? 'maxX' : 'maxZ';
+    const otherMinKey = isX ? 'minZ' : 'minX';
+    const otherMaxKey = isX ? 'maxZ' : 'maxX';
+    const startAxis = startPosition[axis];
+    const nextAxis = startAxis + velocity[axis] * deltaTime;
+    const startMin = startAxis + offsets[minKey];
+    const startMax = startAxis + offsets[maxKey];
+
+    let resolvedPosition = nextAxis;
+
+    for (const platform of this.platforms) {
+      const verticalOverlap =
+        startPosition.y + offsets.minY < platform.maxY &&
+        startPosition.y + offsets.maxY > platform.minY;
+      const otherPosition = this.tempPos[isX ? 'z' : 'x'];
+      const otherOverlap =
+        otherPosition + offsets[otherMinKey] < platform[otherMaxKey] &&
+        otherPosition + offsets[otherMaxKey] > platform[otherMinKey];
+
+      if (!verticalOverlap || !otherOverlap) continue;
+
+      if (
+        velocity[axis] > 0 &&
+        startMax <= platform[minKey] &&
+        nextAxis + offsets[maxKey] >= platform[minKey]
+      ) {
+        resolvedPosition = Math.min(resolvedPosition, platform[minKey] - offsets[maxKey]);
+        velocity[axis] = 0;
+      } else if (
+        velocity[axis] < 0 &&
+        startMin >= platform[maxKey] &&
+        nextAxis + offsets[minKey] <= platform[maxKey]
+      ) {
+        resolvedPosition = Math.max(resolvedPosition, platform[maxKey] - offsets[minKey]);
+        velocity[axis] = 0;
+      }
+    }
+
+    this.tempPos[axis] = resolvedPosition;
+  }
+
+  /**
+   * Resolve landing on platform tops and impacts with platform undersides.
+   * @returns {{position: number, onGround: boolean, platform: Object|null}}
+   */
+  resolveVerticalAxis(startPosition, velocity, deltaTime, offsets) {
+    const nextPosition = startPosition.y + velocity.y * deltaTime;
+    const startMin = startPosition.y + offsets.minY;
+    const startMax = startPosition.y + offsets.maxY;
+    const nextMin = nextPosition + offsets.minY;
+    const nextMax = nextPosition + offsets.maxY;
+    const horizontalOverlap = (platform) => (
+      this.tempPos.x + offsets.minX < platform.maxX &&
+      this.tempPos.x + offsets.maxX > platform.minX &&
+      this.tempPos.z + offsets.minZ < platform.maxZ &&
+      this.tempPos.z + offsets.maxZ > platform.minZ
+    );
+
+    if (velocity.y < 0) {
+      let landingPlatform = null;
+
+      for (const platform of this.platforms) {
+        if (
+          horizontalOverlap(platform) &&
+          startMin >= platform.maxY &&
+          nextMin <= platform.maxY &&
+          (!landingPlatform || platform.maxY > landingPlatform.maxY)
+        ) {
+          landingPlatform = platform;
+        }
+      }
+
+      if (landingPlatform) {
+        velocity.y = 0;
+        return {
+          position: landingPlatform.maxY - offsets.minY,
+          onGround: true,
+          platform: landingPlatform
+        };
+      }
+    } else if (velocity.y > 0) {
+      let ceilingPlatform = null;
+
+      for (const platform of this.platforms) {
+        if (
+          horizontalOverlap(platform) &&
+          startMax <= platform.minY &&
+          nextMax >= platform.minY &&
+          (!ceilingPlatform || platform.minY < ceilingPlatform.minY)
+        ) {
+          ceilingPlatform = platform;
+        }
+      }
+
+      if (ceilingPlatform) {
+        velocity.y = 0;
+        return {
+          position: ceilingPlatform.minY - offsets.maxY,
+          onGround: false,
+          platform: ceilingPlatform
+        };
+      }
+    }
+
+    return { position: nextPosition, onGround: false, platform: null };
   }
 
   /**

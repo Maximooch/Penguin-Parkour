@@ -397,13 +397,14 @@ export class PenguinController extends Entity {
    * Update collider (implement Entity method)
    */
   updateCollider() {
-    // Penguin collider is centered at position with 0.5 radius
+    // Position represents the penguin's feet. Keep the collider above that
+    // point so standing on a platform does not count as side penetration.
     const radius = 0.5;
     this.collider = {
       minX: this.position.x - radius,
       maxX: this.position.x + radius,
-      minY: this.position.y - 1, // Height is 1 unit
-      maxY: this.position.y,
+      minY: this.position.y,
+      maxY: this.position.y + 1,
       minZ: this.position.z - radius,
       maxZ: this.position.z + radius
     };

@@ -38,10 +38,10 @@
 - Emit change events so other managers can react
 
 **Acceptance:**
-- [ ] Settings survive page reload
-- [ ] Mouse sensitivity actually changes camera rotation speed
-- [ ] FOV setting changes camera FOV
-- [ ] Invalid values clamp to allowed range
+- [x] Settings survive page reload
+- [x] Mouse sensitivity changes camera rotation speed
+- [x] FOV setting changes camera FOV
+- [x] Invalid values clamp to allowed range
 
 ---
 
@@ -69,12 +69,12 @@
   - FOV slider
 
 **Acceptance:**
-- [ ] Esc opens pause menu, pointer lock releases
-- [ ] Resume closes menu, re-locks pointer
-- [ ] Controls overlay shows on first play
-- [ ] HUD shows level name + timer
-- [ ] Victory screen shows time + restart option
-- [ ] Settings panel reads/writes via SettingsManager
+- [x] Esc opens pause menu, pointer lock releases
+- [x] Resume closes menu, re-locks pointer
+- [x] Controls overlay shows on first play
+- [x] HUD shows level name + timer
+- [x] Victory screen shows time + restart option
+- [x] Settings panel reads/writes via SettingsManager
 
 ---
 
@@ -186,9 +186,9 @@
 
 ## Known Issues
 
-1. **Physics is top-surface only** — no wall/side/bottom collision, penguin phases through walls
+1. ~~**Physics is top-surface only** — no wall/side/bottom collision, penguin phases through walls~~ Resolved in PR 1: axis-separated AABB collision covers platform tops, undersides, and side faces.
 2. **GC pressure** — `getActions()` creates new Vector2 every frame
 3. **Monkey-patched game.update** — goal animation added via binding override in main.js
-4. **Memory leak** — `clearLevel()` doesn't dispose geometries/materials
+4. ~~**Memory leak** — `clearLevel()` doesn't dispose geometries/materials~~ Resolved in PR 1: level-owned InstancedMesh and water resources are disposed on reload; shared VoxelBuilder resources are retained for reuse.
 5. **No camera collision** — camera can clip through platforms
 6. **Legacy files** — `.bak` files and `Penguin-Parkour.html` monolith still in repo (gitignored)

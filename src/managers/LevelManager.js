@@ -165,6 +165,7 @@ export class LevelManager {
     const geometry = new THREE.BoxGeometry(width, height, depth);
     const material = new THREE.MeshStandardMaterial({ color });
     const instancedMesh = new THREE.InstancedMesh(geometry, material, platforms.length);
+    instancedMesh.userData.disposeOnLevelClear = true;
 
     const matrix = new THREE.Matrix4();
 
@@ -244,7 +245,16 @@ export class LevelManager {
   clearLevel() {
     console.log('[LevelManager] Clearing level...');
 
-    // Remove all level meshes
+    // Instanced platform meshes own their geometry/materials. Individual
+    // platform and goal meshes reuse VoxelBuilder's shared cache, so those
+    // resources intentionally remain alive for the next level build.
+    this.levelGroup.traverse((object) => {
+      if (object.userData.disposeOnLevelClear) {
+        this.disposeObjectResources(object);
+      }
+    });
+
+    // Remove all level meshes after their unique resources are released.
     this.levelGroup.clear();
 
     // Clear arrays
@@ -260,6 +270,7 @@ export class LevelManager {
     // Remove water
     if (this.waterPlane) {
       this.scene.remove(this.waterPlane);
+      this.disposeObjectResources(this.waterPlane);
       this.waterPlane = null;
     }
 
@@ -270,6 +281,24 @@ export class LevelManager {
     if (this.game.physicsWorld) {
       this.game.physicsWorld.clearPlatforms();
     }
+  }
+
+  /**
+   * Dispose render resources owned by a level object.
+   * Shared VoxelBuilder geometry and materials must not be disposed here.
+   * @param {THREE.Object3D} object
+   */
+  disposeObjectResources(object) {
+    if (object.geometry) {
+      object.geometry.dispose();
+    }
+
+    if (!object.material) return;
+
+    const materials = Array.isArray(object.material)
+      ? object.material
+      : [object.material];
+    materials.forEach((material) => material.dispose());
   }
 
   /**
