@@ -109,10 +109,10 @@
 - Support primary + alternate bindings
 
 **Acceptance:**
-- [ ] Can rebind movement keys
-- [ ] Can rebind jump/sprint
-- [ ] Rebinds persist across reloads
-- [ ] Conflicting bindings show warning
+- [x] Can rebind movement keys
+- [x] Can rebind jump/sprint
+- [x] Rebinds persist across reloads
+- [x] Conflicting bindings show warning
 
 ---
 

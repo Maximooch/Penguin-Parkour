@@ -1,128 +1,104 @@
 /**
  * InputManager.js - The Interface
  *
- * Abstracts raw keyboard and mouse input into semantic game actions.
- * This decouples input handling from game logic and makes it easy to:
- * - Add gamepad support later
- * - Rebind controls in settings
- * - Handle pointer lock with fallback
+ * Abstracts raw keyboard and mouse input into semantic game actions. Keyboard
+ * bindings are persisted by SettingsManager and use KeyboardEvent.code so the
+ * player's physical control layout remains stable across keyboard layouts.
  */
 
 import * as THREE from 'three';
 
+export const INPUT_ACTIONS = {
+  moveForward: 'moveForward',
+  moveBackward: 'moveBackward',
+  moveLeft: 'moveLeft',
+  moveRight: 'moveRight',
+  jump: 'jump',
+  sprint: 'sprint',
+  pause: 'pause'
+};
+
+export const INPUT_ACTION_LABELS = {
+  [INPUT_ACTIONS.moveForward]: 'Move Forward',
+  [INPUT_ACTIONS.moveBackward]: 'Move Backward',
+  [INPUT_ACTIONS.moveLeft]: 'Move Left',
+  [INPUT_ACTIONS.moveRight]: 'Move Right',
+  [INPUT_ACTIONS.jump]: 'Jump',
+  [INPUT_ACTIONS.sprint]: 'Sprint',
+  [INPUT_ACTIONS.pause]: 'Pause'
+};
+
 /**
- * InputManager class
- * Handles all input and provides a clean actions API
+ * Handles all input and provides a clean actions API.
  */
 export class InputManager {
   constructor(game) {
     this.game = game;
+    this.pressedCodes = new Set();
+    this.keyBindings = this.game.settingsManager?.get('keyBindings') || {};
 
-    // Raw input state
-    this.keys = {
-      w: false,
-      a: false,
-      s: false,
-      d: false,
-      space: false,
-      shift: false,
-      escape: false
-    };
-
-    // Mouse state
-    this.mouseSensitivity = 0.002; // Base value, multiplied by settings multiplier
+    this.mouseSensitivity = 0.002;
     this.mouseDelta = { x: 0, y: 0 };
-    this.isDragging = false; // Fallback when pointer lock fails
-
-    // Pointer lock state
+    this.isDragging = false;
     this.isPointerLocked = false;
+    this.isRebinding = false;
 
-    // Bind event handlers
     this.onKeyDown = this.onKeyDown.bind(this);
     this.onKeyUp = this.onKeyUp.bind(this);
     this.onMouseMove = this.onMouseMove.bind(this);
     this.onMouseDown = this.onMouseDown.bind(this);
     this.onMouseUp = this.onMouseUp.bind(this);
     this.onPointerLockChange = this.onPointerLockChange.bind(this);
+    this.onSettingChanged = this.onSettingChanged.bind(this);
 
-    // Setup event listeners
     this.setupListeners();
 
-    // Apply settings if available
     if (this.game.settingsManager) {
       this.applySensitivity(this.game.settingsManager.get('mouseSensitivity'));
-      this.game.settingsManager.addEventListener('settingChanged', (e) => {
-        if (e.detail.key === 'mouseSensitivity') this.applySensitivity(e.detail.value);
-      });
+      this.game.settingsManager.addEventListener('settingChanged', this.onSettingChanged);
     }
   }
 
-  /**
-   * Apply mouse sensitivity setting to internal value
-   * @param {number} multiplier - Settings multiplier (0.1–5.0)
-   */
   applySensitivity(multiplier) {
     this.mouseSensitivity = 0.002 * multiplier;
   }
 
-  /**
-   * Setup all input event listeners
-   */
+  onSettingChanged(event) {
+    if (event.detail.key === 'mouseSensitivity') {
+      this.applySensitivity(event.detail.value);
+    } else if (event.detail.key === 'keyBindings') {
+      this.keyBindings = event.detail.value;
+      this.pressedCodes.clear();
+    }
+  }
+
   setupListeners() {
-    // Keyboard events
     window.addEventListener('keydown', this.onKeyDown);
     window.addEventListener('keyup', this.onKeyUp);
-
-    // Mouse events
     window.addEventListener('mousemove', this.onMouseMove);
     window.addEventListener('mousedown', this.onMouseDown);
     window.addEventListener('mouseup', this.onMouseUp);
-
-    // Pointer lock events
     document.addEventListener('pointerlockchange', this.onPointerLockChange);
   }
 
-  /**
-   * Handle keydown events
-   */
   onKeyDown(event) {
-    const key = event.key.toLowerCase();
+    if (this.isRebinding) return;
 
-    // Map keys
-    if (key === ' ') {
-      this.keys.space = true;
-    } else if (key === 'shift') {
-      this.keys.shift = true;
-    } else if (key === 'escape') {
-      this.keys.escape = true;
-      this.handleEscape();
-    } else if (this.keys.hasOwnProperty(key)) {
-      this.keys[key] = true;
+    this.pressedCodes.add(event.code);
+
+    if (this.isActionPressed(INPUT_ACTIONS.pause) && !event.repeat) {
+      event.preventDefault();
+      this.handlePause();
     }
   }
 
-  /**
-   * Handle keyup events
-   */
   onKeyUp(event) {
-    const key = event.key.toLowerCase();
+    if (this.isRebinding) return;
 
-    if (key === ' ') {
-      this.keys.space = false;
-    } else if (key === 'shift') {
-      this.keys.shift = false;
-    } else if (key === 'escape') {
-      this.keys.escape = false;
-    } else if (this.keys.hasOwnProperty(key)) {
-      this.keys[key] = false;
-    }
+    this.pressedCodes.delete(event.code);
   }
 
-  /**
-   * Handle mouse movement
-   */
   onMouseMove(event) {
-    // Only track mouse delta if pointer is locked OR we're dragging (fallback)
     if (this.isPointerLocked || (this.game.isPlaying() && this.isDragging)) {
       this.mouseDelta.x = event.movementX;
       this.mouseDelta.y = event.movementY;
@@ -132,114 +108,124 @@ export class InputManager {
     }
   }
 
-  /**
-   * Handle mouse down (for drag fallback)
-   */
   onMouseDown() {
     if (this.game.isPlaying() && !this.isPointerLocked) {
       this.isDragging = true;
     }
   }
 
-  /**
-   * Handle mouse up (for drag fallback)
-   */
   onMouseUp() {
     this.isDragging = false;
   }
 
-  /**
-   * Handle pointer lock state changes
-   */
   onPointerLockChange() {
     this.isPointerLocked = document.pointerLockElement === document.body;
-
     if (this.isPointerLocked) {
       this.isDragging = false;
     }
   }
 
-  /**
-   * Handle Escape key press
-   */
-  handleEscape() {
+  handlePause() {
     if (this.game.isPlaying()) {
       this.game.setState('paused');
       this.exitPointerLock();
-
-      // Show pause menu if UIManager exists
-      if (this.game.uiManager) {
-        this.game.uiManager.showMenu('pause');
-      }
+      this.game.uiManager?.showMenu('pause');
     }
   }
 
-  /**
-   * Request pointer lock
-   */
   requestPointerLock() {
     try {
       document.body.requestPointerLock();
-    } catch (e) {
+    } catch (error) {
       console.warn('[Input] Pointer lock failed, using drag fallback');
     }
   }
 
-  /**
-   * Exit pointer lock
-   */
   exitPointerLock() {
     if (document.pointerLockElement) {
       document.exitPointerLock();
     }
   }
 
-  /**
-   * Update input state (called every frame)
-   */
-  update() {
-    // Could process buffered inputs here
-    // For now, inputs are processed in real-time via events
+  update() {}
+
+  /** Temporarily suppress gameplay input while the settings UI captures a key. */
+  setRebindingActive(active) {
+    this.isRebinding = active;
+    if (active) this.pressedCodes.clear();
   }
 
   /**
-   * Get current actions (semantic game actions)
-   * @returns {Object} actions object
+   * Return bindings for an action as [primary, alternate].
+   * @param {string} action
+   * @returns {Array<string|null>}
    */
+  getBindings(action) {
+    const bindings = this.keyBindings[action];
+    return Array.isArray(bindings) ? [...bindings] : [null, null];
+  }
+
+  /**
+   * Update one action slot and persist it through SettingsManager.
+   * @param {string} action
+   * @param {number} slot
+   * @param {string|null} code
+   */
+  setBinding(action, slot, code) {
+    if (!(action in INPUT_ACTIONS) || !Number.isInteger(slot) || slot < 0 || slot > 1) {
+      return;
+    }
+
+    const bindings = this.game.settingsManager?.get('keyBindings') || { ...this.keyBindings };
+    bindings[action] = Array.isArray(bindings[action]) ? [...bindings[action]] : [null, null];
+    bindings[action][slot] = code;
+    this.game.settingsManager?.set('keyBindings', bindings);
+  }
+
+  /**
+   * Find every action/slot using a code, excluding an optional target slot.
+   * @param {string} code
+   * @param {{action: string, slot: number}} target
+   * @returns {Array<{action: string, slot: number}>}
+   */
+  findBindingConflicts(code, target = {}) {
+    if (!code) return [];
+
+    return Object.keys(INPUT_ACTIONS).flatMap((action) => this.getBindings(action)
+      .map((binding, slot) => ({ action, slot, binding }))
+      .filter(({ action, slot, binding }) => (
+        binding === code && (action !== target.action || slot !== target.slot)
+      ))
+      .map(({ action, slot }) => ({ action, slot })));
+  }
+
+  isActionPressed(action) {
+    return this.getBindings(action).some((code) => code && this.pressedCodes.has(code));
+  }
+
   getActions() {
-    // Calculate movement vector from WASD
     const moveVector = new THREE.Vector2(0, 0);
 
-    if (this.keys.w) moveVector.y += 1;
-    if (this.keys.s) moveVector.y -= 1;
-    if (this.keys.d) moveVector.x += 1;
-    if (this.keys.a) moveVector.x -= 1;
+    if (this.isActionPressed(INPUT_ACTIONS.moveForward)) moveVector.y += 1;
+    if (this.isActionPressed(INPUT_ACTIONS.moveBackward)) moveVector.y -= 1;
+    if (this.isActionPressed(INPUT_ACTIONS.moveRight)) moveVector.x += 1;
+    if (this.isActionPressed(INPUT_ACTIONS.moveLeft)) moveVector.x -= 1;
 
-    // Normalize if moving diagonally
     if (moveVector.lengthSq() > 0) {
       moveVector.normalize();
     }
 
     return {
-      // Movement
-      moveVector: moveVector,
-      jump: this.keys.space,
-      sprint: this.keys.shift,
-
-      // Future actions
-      dash: false,      // Future: E key
-      interact: false,  // Future: F key
-
-      // Mouse look
+      moveVector,
+      jump: this.isActionPressed(INPUT_ACTIONS.jump),
+      sprint: this.isActionPressed(INPUT_ACTIONS.sprint),
+      dash: false,
+      interact: false,
       mouseDelta: { ...this.mouseDelta },
       mouseSensitivity: this.mouseSensitivity
     };
   }
 
-  /**
-   * Get mouse delta and reset
-   * @returns {Object} {x, y}
-   */
   getMouseDelta() {
     const delta = { ...this.mouseDelta };
     this.mouseDelta.x = 0;
@@ -247,41 +233,21 @@ export class InputManager {
     return delta;
   }
 
-  /**
-   * Set mouse sensitivity
-   * @param {number} sensitivity
-   */
   setMouseSensitivity(sensitivity) {
     this.mouseSensitivity = sensitivity;
   }
 
-  /**
-   * Check if a specific key is pressed
-   * @param {string} key
-   * @returns {boolean}
-   */
-  isKeyPressed(key) {
-    return this.keys[key] || false;
+  isKeyPressed(code) {
+    return this.pressedCodes.has(code);
   }
 
-  /**
-   * Reset all input state
-   */
   reset() {
-    // Clear all keys
-    for (const key in this.keys) {
-      this.keys[key] = false;
-    }
-
-    // Clear mouse state
+    this.pressedCodes.clear();
     this.mouseDelta.x = 0;
     this.mouseDelta.y = 0;
     this.isDragging = false;
   }
 
-  /**
-   * Cleanup and remove event listeners
-   */
   destroy() {
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup', this.onKeyUp);
@@ -289,7 +255,7 @@ export class InputManager {
     window.removeEventListener('mousedown', this.onMouseDown);
     window.removeEventListener('mouseup', this.onMouseUp);
     document.removeEventListener('pointerlockchange', this.onPointerLockChange);
-
+    this.game.settingsManager?.removeEventListener('settingChanged', this.onSettingChanged);
     this.exitPointerLock();
   }
 }

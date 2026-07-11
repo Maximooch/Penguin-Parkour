@@ -86,6 +86,11 @@
             <input type="checkbox" id="setting-particles" class="settings-toggle">
           </div>
         </div>
+        <section class="key-bindings-section" aria-labelledby="key-bindings-heading">
+          <h3 id="key-bindings-heading">Key Bindings</h3>
+          <p id="binding-status" class="binding-status" aria-live="polite"></p>
+          <div id="key-bindings" class="key-bindings"></div>
+        </section>
       </div>
       <div class="settings-footer">
         <button id="btn-settings-reset" class="menu-button menu-button-small">Reset Defaults</button>
@@ -123,11 +128,11 @@
     <div class="controls-card">
       <h3>Controls</h3>
       <div class="controls-grid">
-        <span class="controls-key">W A S D</span><span>Move</span>
-        <span class="controls-key">Space</span><span>Jump</span>
-        <span class="controls-key">Shift</span><span>Sprint</span>
+        <span class="controls-key" data-control-action="movement">W A S D</span><span>Move</span>
+        <span class="controls-key" data-control-action="jump">Space</span><span>Jump</span>
+        <span class="controls-key" data-control-action="sprint">Shift</span><span>Sprint</span>
         <span class="controls-key">Mouse</span><span>Look Around</span>
-        <span class="controls-key">Esc</span><span>Pause</span>
+        <span class="controls-key" data-control-action="pause">Esc</span><span>Pause</span>
       </div>
       <button id="btn-controls-dismiss" class="menu-button menu-button-small">Got it!</button>
     </div>

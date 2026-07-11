@@ -17,6 +17,17 @@ const SETTINGS_SCHEMA = {
   fov: { default: 60, min: 50, max: 90, step: 1 },
   shadows: { default: true },
   particles: { default: true },
+  keyBindings: {
+    default: {
+      moveForward: ['KeyW', null],
+      moveBackward: ['KeyS', null],
+      moveLeft: ['KeyA', null],
+      moveRight: ['KeyD', null],
+      jump: ['Space', null],
+      sprint: ['ShiftLeft', 'ShiftRight'],
+      pause: ['Escape', null]
+    }
+  }
 };
 
 const STORAGE_KEY = 'penguinParkour_settings';
@@ -29,22 +40,22 @@ export class SettingsManager extends EventTarget {
   }
 
   /**
-   * Get a setting value
-   * @param {string} key - Setting key (e.g., 'mouseSensitivity')
+   * Get a setting value (returned objects are safe to mutate locally).
+   * @param {string} key
    * @returns {*} Current value or default
    */
   get(key) {
     if (key in this.settings) {
-      return this.settings[key];
+      return this.cloneValue(this.settings[key]);
     }
     const schema = SETTINGS_SCHEMA[key];
-    return schema ? schema.default : undefined;
+    return schema ? this.cloneValue(schema.default) : undefined;
   }
 
   /**
-   * Set a setting value (clamped to valid range)
-   * @param {string} key - Setting key
-   * @param {*} value - New value
+   * Set a setting value (clamped to valid range).
+   * @param {string} key
+   * @param {*} value
    * @param {boolean} silent - If true, don't emit change event
    */
   set(key, value, silent = false) {
@@ -54,10 +65,13 @@ export class SettingsManager extends EventTarget {
       return;
     }
 
+    if (key === 'keyBindings') {
+      value = this.normalizeKeyBindings(value);
+    }
+
     // Clamp numeric values
     if (schema.min !== undefined) {
       value = Math.max(schema.min, Math.min(schema.max, value));
-      // Round to step
       if (schema.step) {
         value = Math.round(value / schema.step) * schema.step;
         value = parseFloat(value.toFixed(4));
@@ -65,85 +79,104 @@ export class SettingsManager extends EventTarget {
     }
 
     const oldValue = this.settings[key];
-    this.settings[key] = value;
-
-    // Auto-save
+    this.settings[key] = this.cloneValue(value);
     this.save();
 
-    // Emit change event
-    if (!silent && oldValue !== value) {
+    if (!silent && JSON.stringify(oldValue) !== JSON.stringify(value)) {
       this.dispatchEvent(new CustomEvent('settingChanged', {
-        detail: { key, value, oldValue }
+        detail: { key, value: this.cloneValue(value), oldValue: this.cloneValue(oldValue) }
       }));
     }
   }
 
-  /**
-   * Load settings from localStorage (merges with defaults)
-   */
+  /** Load settings from localStorage (merges with defaults). */
   load() {
-    // Start with defaults
     this.settings = {};
     for (const [key, schema] of Object.entries(SETTINGS_SCHEMA)) {
-      this.settings[key] = schema.default;
+      this.settings[key] = this.cloneValue(schema.default);
     }
 
-    // Overlay saved values
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         for (const [key, value] of Object.entries(parsed)) {
           if (key in SETTINGS_SCHEMA) {
-            this.settings[key] = value;
+            this.settings[key] = key === 'keyBindings'
+              ? this.normalizeKeyBindings(value)
+              : value;
           }
         }
       }
-    } catch (e) {
-      console.warn('[Settings] Failed to load, using defaults:', e);
+    } catch (error) {
+      console.warn('[Settings] Failed to load, using defaults:', error);
     }
   }
 
-  /**
-   * Save current settings to localStorage
-   */
+  /** Save current settings to localStorage. */
   save() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.settings));
-    } catch (e) {
-      console.warn('[Settings] Failed to save:', e);
+    } catch (error) {
+      console.warn('[Settings] Failed to save:', error);
     }
   }
 
-  /**
-   * Reset all settings to defaults
-   */
+  /** Reset all settings to defaults. */
   reset() {
     for (const [key, schema] of Object.entries(SETTINGS_SCHEMA)) {
       const oldValue = this.settings[key];
-      this.settings[key] = schema.default;
-      if (oldValue !== schema.default) {
+      const value = this.cloneValue(schema.default);
+      this.settings[key] = value;
+      if (JSON.stringify(oldValue) !== JSON.stringify(value)) {
         this.dispatchEvent(new CustomEvent('settingChanged', {
-          detail: { key, value: schema.default, oldValue }
+          detail: { key, value: this.cloneValue(value), oldValue: this.cloneValue(oldValue) }
         }));
       }
     }
     this.save();
   }
 
-  /**
-   * Get the full schema (for UI to build controls)
-   * @returns {Object}
-   */
+  /** @returns {Object} */
   getSchema() {
     return SETTINGS_SCHEMA;
   }
 
+  /** @returns {Object} */
+  getAll() {
+    return this.cloneValue(this.settings);
+  }
+
+  cloneValue(value) {
+    return value && typeof value === 'object'
+      ? JSON.parse(JSON.stringify(value))
+      : value;
+  }
+
   /**
-   * Get all current settings as a flat object
+   * Merge saved bindings onto the supported action list and discard malformed
+   * entries. Each action supports a primary and alternate physical key code.
+   * @param {*} bindings
    * @returns {Object}
    */
-  getAll() {
-    return { ...this.settings };
+  normalizeKeyBindings(bindings) {
+    const defaults = SETTINGS_SCHEMA.keyBindings.default;
+    const normalized = {};
+
+    Object.entries(defaults).forEach(([action, defaultBindings]) => {
+      const savedBindings = Array.isArray(bindings?.[action])
+        ? bindings[action]
+        : defaultBindings;
+      normalized[action] = [
+        typeof savedBindings[0] === 'string' ? savedBindings[0] : null,
+        typeof savedBindings[1] === 'string' ? savedBindings[1] : null
+      ];
+
+      if (!normalized[action][0]) {
+        normalized[action][0] = defaultBindings[0];
+      }
+    });
+
+    return normalized;
   }
 }

@@ -157,7 +157,9 @@ canvas {
 /* Settings Panel */
 .settings-panel {
   min-width: 420px;
-  max-width: 500px;
+  max-width: 540px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
   text-align: left;
 }
 
@@ -260,6 +262,76 @@ canvas {
   display: flex;
   justify-content: space-between;
   margin-top: 24px;
+}
+
+/* Key rebinding */
+.key-bindings-section {
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  margin-top: 22px;
+  padding-top: 18px;
+}
+
+.key-bindings-section h3 {
+  color: #88ccff;
+  font-size: 1.05em;
+  margin-bottom: 6px;
+}
+
+.binding-status {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.85em;
+  min-height: 1.2em;
+  margin-bottom: 10px;
+}
+
+.binding-status.is-warning {
+  color: #ffd166;
+}
+
+.key-bindings {
+  display: grid;
+  gap: 8px;
+}
+
+.key-binding-row {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.key-binding-label {
+  font-size: 0.9em;
+  font-weight: 600;
+}
+
+.key-binding-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.key-binding-button {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(136, 204, 255, 0.45);
+  border-radius: 5px;
+  color: white;
+  cursor: pointer;
+  font: inherit;
+  font-family: monospace;
+  min-width: 88px;
+  padding: 6px 8px;
+}
+
+.key-binding-button:hover,
+.key-binding-button:focus-visible {
+  background: rgba(136, 204, 255, 0.25);
+  outline: 2px solid #88ccff;
+  outline-offset: 2px;
+}
+
+.key-binding-button.is-capturing {
+  background: #667eea;
+  border-color: #c3d7ff;
 }
 
 /* Victory Screen */
@@ -393,4 +465,27 @@ canvas {
 
 .pointer-locked {
   cursor: none;
+}
+
+@media (max-width: 560px) {
+  .settings-panel {
+    min-width: min(420px, calc(100vw - 24px));
+    padding: 28px 24px;
+  }
+
+  .settings-row,
+  .key-binding-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .settings-control,
+  .key-binding-controls {
+    width: 100%;
+  }
+
+  .key-binding-button {
+    flex: 1;
+  }
 }
