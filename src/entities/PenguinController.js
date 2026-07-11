@@ -30,7 +30,7 @@ export const PenguinState = {
  * Extends Entity base class
  */
 export class PenguinController extends Entity {
-  constructor(scene) {
+  constructor(scene, audioManager = null) {
     // Initialize Entity base class
     const position = new THREE.Vector3(0, 0, 0);
     const velocity = new THREE.Vector3(0, 0, 0);
@@ -38,6 +38,7 @@ export class PenguinController extends Entity {
     super({ position, velocity });
     
     this.scene = scene;
+    this.audioManager = audioManager;
     this.addToScene(scene);
 
     // Create penguin groups
@@ -288,10 +289,10 @@ export class PenguinController extends Entity {
       // State entry actions
       switch (newState) {
         case PenguinState.JUMP:
-          // Could play jump sound here
+          this.audioManager?.playSFX('jump');
           break;
         case PenguinState.LAND:
-          // Could play land sound here
+          this.audioManager?.playSFX('land');
           break;
       }
     }

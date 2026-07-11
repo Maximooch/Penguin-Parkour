@@ -91,9 +91,9 @@
 - Stub mode: if audio files missing, log silently (no errors)
 
 **Acceptance:**
-- [ ] No console errors when no audio files present
-- [ ] Volume changes in settings immediately affect playback
-- [ ] SFX plays with slight random pitch variation
+- [x] No console errors when no audio files present
+- [x] Volume changes in settings immediately affect playback
+- [x] SFX plays with slight random pitch variation
 
 ---
 
