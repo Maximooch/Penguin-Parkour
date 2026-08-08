@@ -1,0 +1,10 @@
+{
+  "name": "echoes-of-keru",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A tiny 2D penguin parkour expedition through ancient ruins.",
+  "scripts": {
+    "start": "python3 -m http.server 4173",
+    "dev": "python3 -m http.server 4173"
+  }
+}

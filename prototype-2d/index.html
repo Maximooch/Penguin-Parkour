@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Echoes of Keru — Penguin Ruins Prototype</title>
+    <link rel="stylesheet" href="styles.css?v=20260808" />
+  </head>
+  <body>
+    <main class="game-shell" aria-label="Echoes of Keru game">
+      <canvas id="game" aria-label="Playable penguin ruins platformer"></canvas>
+
+      <section class="hud hud-top" aria-live="polite">
+        <div class="brand-lockup">
+          <div class="brand-mark">K</div>
+          <div>
+            <p class="eyebrow">field notes / 01</p>
+            <h1>Echoes of Keru</h1>
+          </div>
+        </div>
+        <div class="objective-card">
+          <div class="objective-header">
+            <p class="eyebrow">current objective</p>
+            <button id="audio-toggle" class="audio-toggle" type="button" aria-pressed="false">sound on</button>
+          </div>
+          <p class="level-label" id="level-label">level 01 · the drowned steps</p>
+          <p id="objective">Find the three lantern shards</p>
+          <div class="shard-meter" id="shard-meter" aria-label="Lantern shard progress">
+            <span class="shard-dot"></span><span class="shard-dot"></span><span class="shard-dot"></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="hud hud-bottom">
+        <p class="status-line"><span class="status-dot"></span><span id="status">The ruins are listening.</span></p>
+        <p class="controls"><kbd>A</kbd><kbd>D</kbd> move <span class="control-separator">·</span> <kbd>SPACE</kbd> jump <span class="control-separator">·</span> <kbd>SHIFT</kbd> dash <span class="control-separator">·</span> <kbd>R</kbd> reset</p>
+      </section>
+
+      <section class="start-screen" id="start-screen">
+        <div class="start-card">
+          <p class="eyebrow">a tiny parkour expedition</p>
+          <h2>Wake the old light.</h2>
+          <p class="start-copy">Cross the drowned halls of Keru, collect its lost lantern shards, and reach the observatory before the tide comes back.</p>
+          <button id="start-button" type="button">Begin expedition <span>→</span></button>
+          <p class="start-hint">Keyboard recommended · explore at your own pace</p>
+        </div>
+      </section>
+
+      <div class="toast" id="toast" role="status"></div>
+      <div class="vignette"></div>
+    </main>
+    <script src="game.js?v=20260808"></script>
+  </body>
+</html>
