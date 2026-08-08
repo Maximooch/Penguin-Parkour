@@ -36,6 +36,17 @@ src/
 
 Levels are JSON files in `public/levels/` — currently just `level1.json`.
 
+## 2D ruins prototype
+
+This repository also includes a self-contained 2D exploration-platformer prototype in [`prototype-2d/`](prototype-2d/). Echoes of Keru follows a penguin through three ancient ruin zones with parkour movement, lantern-shard collectibles, local ambient music, and CC0 sound effects.
+
+```bash
+cd prototype-2d
+npm run dev
+```
+
+The shared product direction and next milestones live in [`roadmap.md`](roadmap.md). The prototype's story notes and asset attributions are in [`prototype-2d/lore.md`](prototype-2d/lore.md), [`prototype-2d/brainstorm.md`](prototype-2d/brainstorm.md), and [`prototype-2d/credits.md`](prototype-2d/credits.md).
+
 ## Getting Started
 
 ```bash
